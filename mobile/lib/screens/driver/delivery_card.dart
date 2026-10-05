@@ -5,6 +5,7 @@ import '../../models.dart';
 import '../../theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
+import '../../widgets/route_map.dart' show CustomerLivePin;
 import 'driver_actions.dart';
 import 'driver_order_detail_screen.dart';
 
@@ -154,6 +155,30 @@ class _DeliveryCardState extends State<DeliveryCard> {
                           ].join(' • '),
                           style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant),
                         ),
+                        // Le client partage sa position en direct : « Itinéraire » mène là où il est.
+                        if (o.customerLocation != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(4, 3, 10, 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.green.withValues(alpha: 0.5)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(width: 22, height: 22, child: CustomerLivePin()),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Client en direct',
+                                    style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

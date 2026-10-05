@@ -258,7 +258,10 @@ class _LocationImportSheetState extends State<_LocationImportSheet> {
     if (loc == null || !mounted) return;
     // Garde le nom du lieu partagé si la carte n'a pas trouvé d'adresse.
     final address = (loc.address?.trim() ?? '').isNotEmpty ? loc.address : _candidateAddress;
-    Navigator.pop(context, LocationData(lat: loc.lat, lng: loc.lng, accuracy: null, address: address));
+    Navigator.pop(
+      context,
+      LocationData(lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, address: address, liveMinutes: loc.liveMinutes),
+    );
   }
 
   void _confirm() {
@@ -301,10 +304,52 @@ class _LocationImportSheetState extends State<_LocationImportSheet> {
         const Text('Où vous livrer ?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
         Text(
-          'Choisissez votre maison dans Google Maps et partagez-la avec KALETA.',
+          'Envoyez votre position comme sur WhatsApp, ou choisissez votre maison dans Google Maps.',
           style: TextStyle(color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
+        // Comme WhatsApp : « Position » → en direct, position actuelle ou point sur la carte.
+        Material(
+          color: AppColors.green.withValues(alpha: 0.12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: AppColors.green.withValues(alpha: 0.5)),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: busy ? null : _useGps,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.green),
+                    child: const Icon(Icons.share_location_rounded, color: Colors.white, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Envoyer ma position',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: cs.onSurface)),
+                        const SizedBox(height: 2),
+                        Text(
+                          'En direct (le livreur vous suit) ou position actuelle',
+                          style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
         if (busy) ...[
           _BusyCard(text: _parsing ? 'Lecture de la position…' : 'Lecture de la position reçue de Google Maps…'),
           const SizedBox(height: 16),
@@ -405,13 +450,6 @@ class _LocationImportSheetState extends State<_LocationImportSheet> {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 18),
-        OutlinedButton.icon(
-          onPressed: busy ? null : _useGps,
-          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(54)),
-          icon: const Icon(Icons.my_location_rounded),
-          label: const Text('Utiliser ma position actuelle (GPS)'),
         ),
       ],
     );

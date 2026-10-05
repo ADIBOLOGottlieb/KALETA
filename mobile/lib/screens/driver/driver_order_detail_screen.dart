@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -6,6 +8,7 @@ import '../../services/api.dart';
 import '../../services/driver_tracker.dart';
 import '../../theme.dart';
 import '../../utils/format.dart';
+import '../../utils/polling.dart';
 import '../../widgets/common.dart';
 import '../../widgets/route_map.dart';
 import 'delivery_card.dart';
@@ -28,10 +31,33 @@ class _DriverOrderDetailScreenState extends State<DriverOrderDetailScreen> {
   String _restaurantAddress = '';
   bool _busy = false;
 
+  /// Livraison en cours : la commande est relue toutes les 8 s (position en direct du client).
+  Timer? _refresh;
+  static const _refreshEvery = Duration(seconds: 8);
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _refresh = Timer.periodic(_refreshEvery, (_) => _reload());
+  }
+
+  @override
+  void dispose() {
+    _refresh?.cancel();
+    super.dispose();
+  }
+
+  /// Relit la commande pendant la livraison (position du client, annulation...), sans bloquer l'écran.
+  Future<void> _reload() async {
+    final o = _order;
+    if (_busy || !canMarkDelivered(o, currentUserId(context)) || !isRouteOnTop(context)) return;
+    try {
+      final fresh = await Api.instance.order(o.id);
+      if (mounted && !_busy) setState(() => _order = fresh);
+    } catch (_) {
+      // Réseau : on réessaiera au prochain tour.
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -299,14 +325,23 @@ class _DriverOrderDetailScreenState extends State<DriverOrderDetailScreen> {
             const SizedBox(height: 16),
             const Text('Itinéraire', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
+            if (o.customerLocation != null) ...[
+              CustomerLiveBanner(location: o.customerLocation!, until: o.liveShareUntil),
+              const SizedBox(height: 10),
+            ],
             // Livraison en cours : ma position (celle que voit le client) s'affiche sur la carte.
             ValueListenableBuilder<DriverLocation?>(
               valueListenable: DriverTracker.instance.position,
               builder: (context, mine, _) => RouteMap(
                 from: _restaurant!,
                 to: LatLng(o.deliveryLat!, o.deliveryLng!),
+                customer: o.customerLocation,
                 fromLabel: _restaurantAddress.isEmpty ? 'Restaurant' : 'Restaurant : $_restaurantAddress',
-                toLabel: address.isEmpty ? 'Client' : 'Client : $address',
+                toLabel: o.customerLocation != null
+                    ? 'Client en direct (il partage sa position)'
+                    : address.isEmpty
+                        ? 'Client'
+                        : 'Client : $address',
                 driver: canMarkDelivered(o, me) ? (mine ?? o.driverLocation) : null,
               ),
             ),

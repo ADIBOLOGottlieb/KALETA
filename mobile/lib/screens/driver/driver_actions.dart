@@ -44,8 +44,12 @@ bool isCashOrder(Order o) => !isMobileMoney(o.paymentMethod) && !o.isPaid;
 /// repli sur le lien https, puis sur une recherche par adresse si pas de position.
 Future<void> openClientNavigation(BuildContext context, Order o) async {
   final uris = <Uri>[];
-  if (o.hasLocation) {
-    final dest = '${o.deliveryLat!.toStringAsFixed(6)},${o.deliveryLng!.toStringAsFixed(6)}';
+  // Client en direct : on va là où il est maintenant, pas au point choisi à la commande.
+  final live = o.customerLocation;
+  if (live != null || o.hasLocation) {
+    final lat = live?.lat ?? o.deliveryLat!;
+    final lng = live?.lng ?? o.deliveryLng!;
+    final dest = '${lat.toStringAsFixed(6)},${lng.toStringAsFixed(6)}';
     uris
       ..add(Uri.parse('google.navigation:q=$dest&mode=l'))
       ..add(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$dest&travelmode=driving'));

@@ -6,6 +6,7 @@ import '../../models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/api.dart';
+import '../../services/live_location_sharer.dart';
 import '../../services/maps_link.dart';
 import '../../services/order_events.dart';
 import '../../services/shared_location.dart';
@@ -356,6 +357,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'location': _mode == 'delivery' ? _location?.toJson() : null,
       }, zoneId: _mode == 'delivery' && _zoneMode ? _zoneId : null);
       notifyOrdersChanged();
+      // Position en direct choisie (comme WhatsApp) : le partage démarre dès que la commande existe.
+      final live = _mode == 'delivery' ? _location?.liveMinutes : null;
+      if (live != null) {
+        LiveLocationSharer.instance.start(order.id, live).catchError((Object e) {
+          if (mounted) showMessage(context, e is StateError ? e.message : e, error: true);
+          return order;
+        });
+      }
       if (_mode == 'delivery' && _zoneMode) _rememberSavedAddressZone();
       // Panier vidé seulement après la boîte de confirmation (sinon récapitulatif vide derrière).
       if (!mounted) {
@@ -576,8 +585,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 child: Text(_location == null
-                    ? '📍 Choisir ma position dans Google Maps'
-                    : '📍 Changer ma position (Google Maps)'),
+                    ? '📍 Envoyer ma position'
+                    : '📍 Changer ma position'),
               ),
               const SizedBox(height: 10),
               Material(
@@ -598,6 +607,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           child: Text(
                             _location != null
                                 ? [
+                                    if (_location!.liveMinutes != null)
+                                      '🟢 Position en direct · ${liveShareDurations[_location!.liveMinutes] ?? '${_location!.liveMinutes} min'}',
                                     if ((_location!.address ?? '').trim().isNotEmpty) _location!.address!.trim(),
                                     '${_location!.lat.toStringAsFixed(4)}, ${_location!.lng.toStringAsFixed(4)}',
                                   ].join('\n')

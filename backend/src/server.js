@@ -222,7 +222,7 @@ function presentOrder(o, viewer) {
     delivery_zone_id: o.delivery_zone_id ?? null,
     delivery_zone_name: o.delivery_zone_name ?? null,
     delivery_distance_km: o.delivery_distance_km ?? null,
-    ...delivery.trackingInfo(o),
+    ...delivery.trackingInfo(o, viewer),
     pay_url: canPay ? `/pay/${o.id}?t=${payment_token}` : null,
   };
 }

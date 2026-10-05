@@ -9,8 +9,10 @@ import 'package:latlong2/latlong.dart';
 
 import '../../services/api.dart';
 import '../../services/geo_service.dart';
+import '../../services/live_location_sharer.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/kaleta.dart';
 import '../../widgets/route_map.dart';
 
 class LocationData {
@@ -19,7 +21,10 @@ class LocationData {
   final double? accuracy;
   final String? address;
 
-  LocationData({required this.lat, required this.lng, this.accuracy, this.address});
+  /// Position en direct demandée (minutes : 15, 60 ou 480) ; null = position fixe.
+  final int? liveMinutes;
+
+  LocationData({required this.lat, required this.lng, this.accuracy, this.address, this.liveMinutes});
 
   Map<String, dynamic> toJson() => {'lat': lat, 'lng': lng, 'accuracy': accuracy, 'address': address};
 }
@@ -856,7 +861,7 @@ class _GpsPickerScreenState extends State<GpsPickerScreen> with SingleTickerProv
     final restaurant = _restaurant;
     final rotated = _rotation.abs() > 0.5;
     return Scaffold(
-      appBar: AppBar(title: const Text('Ma position de livraison')),
+      appBar: AppBar(title: const Text('Envoyer la position')),
       // Le clavier passe par-dessus le panneau du bas au lieu d'écraser la carte.
       resizeToAvoidBottomInset: false,
       body: Column(
@@ -1211,6 +1216,8 @@ class _GpsPickerScreenState extends State<GpsPickerScreen> with SingleTickerProv
       ];
     }
 
+    final user = _userPos;
+    final userAccuracy = _userAccuracy;
     return Material(
       elevation: 12,
       color: scheme.surface,
@@ -1218,40 +1225,278 @@ class _GpsPickerScreenState extends State<GpsPickerScreen> with SingleTickerProv
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.place_rounded, color: brandColor(context)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Position choisie',
-                          style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
-                        ),
-                        const SizedBox(height: 4),
-                        ...details,
-                        if (_restaurant != null) _buildRouteInfo(scheme),
-                      ],
-                    ),
-                  ),
-                ],
+              // Comme WhatsApp : position en direct, position actuelle, ou un point choisi sur la carte.
+              _ShareOption(
+                icon: Icons.share_location_rounded,
+                color: AppColors.green,
+                pulse: true,
+                title: 'Partager ma position en direct',
+                subtitle: 'Le livreur vous suit sur sa carte, même si vous bougez',
+                onTap: _shareLive,
               ),
-              const SizedBox(height: 14),
+              _ShareOption(
+                icon: Icons.my_location_rounded,
+                color: brandColor(context),
+                title: 'Envoyer ma position actuelle',
+                subtitle: user == null
+                    ? (_locating ? 'Recherche du GPS…' : 'Touchez pour activer le GPS')
+                    : userAccuracy != null && userAccuracy > 0
+                        ? 'Précision à ${userAccuracy.round()} m'
+                        : 'Position du téléphone',
+                onTap: _sendCurrent,
+              ),
+              Divider(height: 14, color: scheme.outlineVariant),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.place_rounded, color: AppColors.danger),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ou le point de l\'épingle',
+                            style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
+                          ),
+                          const SizedBox(height: 4),
+                          ...details,
+                          if (_restaurant != null) _buildRouteInfo(scheme),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: _confirm,
-                icon: const Icon(Icons.check_rounded),
-                label: const Text('Confirmer cette position'),
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('Envoyer cette position'),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// « Envoyer ma position actuelle » : la position du téléphone (pas l'épingle), avec sa précision.
+  Future<void> _sendCurrent() async {
+    if (_userPos == null) {
+      await _locate();
+      if (!mounted || _userPos == null) return;
+    }
+    Navigator.pop(context, _userLocation());
+  }
+
+  /// « Partager ma position en direct » : choix de la durée, puis la position du téléphone sert de
+  /// point de départ ; le partage commence dès que la commande est envoyée.
+  Future<void> _shareLive() async {
+    final minutes = await showLiveShareDurationSheet(context);
+    if (minutes == null || !mounted) return;
+    if (_userPos == null) {
+      await _locate();
+      if (!mounted) return;
+      if (_userPos == null) {
+        showMessage(context, 'Position introuvable : activez le GPS pour partager en direct.', error: true);
+        return;
+      }
+    }
+    Navigator.pop(context, _userLocation(liveMinutes: minutes));
+  }
+
+  LocationData _userLocation({int? liveMinutes}) {
+    final p = _userPos!;
+    final last = _resolvedFor;
+    final addressIsHere = last != null && _metersBetween(p, last) <= _addressTolerance * 3;
+    return LocationData(
+      lat: p.latitude,
+      lng: p.longitude,
+      accuracy: _userAccuracy,
+      address: addressIsHere ? _address : null,
+      liveMinutes: liveMinutes,
+    );
+  }
+}
+
+/// Choix de la durée du partage en direct (15 min, 1 h, 8 h), comme dans WhatsApp.
+Future<int?> showLiveShareDurationSheet(BuildContext context) {
+  return showModalBottomSheet<int>(
+    context: context,
+    builder: (ctx) => const _LiveDurationSheet(),
+  );
+}
+
+class _LiveDurationSheet extends StatefulWidget {
+  const _LiveDurationSheet();
+
+  @override
+  State<_LiveDurationSheet> createState() => _LiveDurationSheetState();
+}
+
+class _LiveDurationSheetState extends State<_LiveDurationSheet> {
+  int _minutes = 60;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const _LivePulse(color: AppColors.green, size: 44, icon: Icons.share_location_rounded),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text('Position en direct', style: Theme.of(context).textTheme.headlineSmall),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Le livreur KALETA verra votre position bouger pendant la durée choisie, même si vous vous '
+              'déplacez. Vous pouvez arrêter le partage à tout moment depuis votre commande.',
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4, fontSize: 13.5),
+            ),
+            const SizedBox(height: 14),
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: [
+                for (final e in liveShareDurations.entries)
+                  ButtonSegment(value: e.key, label: Text(e.value.replaceFirst('minutes', 'min'))),
+              ],
+              selected: {_minutes},
+              onSelectionChanged: (s) => setState(() => _minutes = s.first),
+            ),
+            const SizedBox(height: 18),
+            GlowButton(
+              label: 'Partager en direct',
+              icon: Icons.send_rounded,
+              onPressed: () => Navigator.pop(context, _minutes),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne d'option du panneau (icône ronde colorée, titre, sous-titre), comme la feuille de WhatsApp.
+class _ShareOption extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool pulse;
+
+  const _ShareOption({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.pulse = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          children: [
+            pulse
+                ? _LivePulse(color: color, size: 42, icon: icon)
+                : Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+                    child: Icon(icon, color: Colors.white, size: 22),
+                  ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pastille ronde avec ondes qui s'élargissent : « en direct ».
+class _LivePulse extends StatefulWidget {
+  final Color color;
+  final double size;
+  final IconData icon;
+  const _LivePulse({required this.color, required this.size, required this.icon});
+
+  @override
+  State<_LivePulse> createState() => _LivePulseState();
+}
+
+class _LivePulseState extends State<_LivePulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.size;
+    return SizedBox(
+      width: s,
+      height: s,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, child) => Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: s * (1 + 0.45 * _c.value),
+              height: s * (1 + 0.45 * _c.value),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color.withValues(alpha: 0.35 * (1 - _c.value)),
+              ),
+            ),
+            child!,
+          ],
+        ),
+        child: Container(
+          width: s,
+          height: s,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
+          child: Icon(widget.icon, color: Colors.white, size: s * 0.52),
         ),
       ),
     );

@@ -556,6 +556,11 @@ class Order {
   final DriverLocation? driverLocation;
   /// Arrivée estimée en minutes (calcul serveur à partir de la position du livreur), sinon null.
   final int? etaMinutes;
+  /// Position en direct du client (partage façon WhatsApp), visible du client, du livreur attribué et du
+  /// personnel ; null sans partage ou si la dernière position date de plus de 10 min.
+  final DriverLocation? customerLocation;
+  /// Fin du partage de position en direct du client (null : pas de partage en cours).
+  final DateTime? liveShareUntil;
   /// Distance restaurant → client estimée par le serveur (km), utilisée pour les frais au kilomètre.
   final double? deliveryDistanceKm;
   /// Origine : 'app' (commande du client) ou 'counter' (vente au comptoir saisie par le personnel).
@@ -597,6 +602,8 @@ class Order {
     this.receivedAt,
     this.driverLocation,
     this.etaMinutes,
+    this.customerLocation,
+    this.liveShareUntil,
     this.deliveryDistanceKm,
     this.source = 'app',
     this.dineIn = false,
@@ -611,6 +618,12 @@ class Order {
   bool get isTrackable => status == 'delivering' && driverDeliveredAt == null && driverLocation != null;
 
   bool get isDelivery => mode == 'delivery';
+
+  /// Le client partage sa position en direct (durée non écoulée).
+  bool get isLiveSharing => liveShareUntil != null && liveShareUntil!.isAfter(DateTime.now()) && !isFinished;
+
+  /// Le client peut encore démarrer un partage en direct (livraison de l'app pas terminée).
+  bool get canShareLive => isDelivery && !isCounter && !isFinished;
   bool get isFinished => status == 'delivered' || status == 'cancelled';
   bool get isCancelled => status == 'cancelled';
   bool get needsPayment => paymentStatus == 'pending' || paymentFailed;
@@ -656,6 +669,8 @@ class Order {
         receivedAt: j['received_at'] == null ? null : _parseDate(j['received_at']),
         driverLocation: DriverLocation.fromJson(j['driver_location']),
         etaMinutes: j['eta_minutes'] == null ? null : _int(j['eta_minutes']),
+        customerLocation: DriverLocation.fromJson(j['customer_location']),
+        liveShareUntil: j['live_share_until'] == null ? null : _parseDate(j['live_share_until']),
         deliveryDistanceKm: _double(j['delivery_distance_km']),
         source: j['source'] == 'counter' ? 'counter' : 'app',
         dineIn: j['dine_in'] == true || j['dine_in'] == 1,

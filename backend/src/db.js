@@ -184,6 +184,8 @@ db.exec(`
 addColumn('orders', 'delivery_lat', 'REAL');
 addColumn('orders', 'delivery_lng', 'REAL');
 addColumn('orders', 'delivery_accuracy', 'REAL');
+// Fin du partage de position en direct du client (comme « Position en direct » de WhatsApp), null = arrêté.
+addColumn('orders', 'live_share_until', 'TEXT');
 addColumn('orders', 'payment_fee', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('orders', 'payment_status', "TEXT NOT NULL DEFAULT 'unpaid'");
 addColumn('orders', 'payment_reference', 'TEXT');
@@ -231,6 +233,17 @@ db.exec(`
     accuracy REAL,
     heading REAL,
     speed REAL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Dernière position du client qui partage sa position en direct pour une livraison (une par commande).
+  CREATE TABLE IF NOT EXISTS customer_live_locations (
+    order_id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    lat REAL NOT NULL,
+    lng REAL NOT NULL,
+    accuracy REAL,
+    heading REAL,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

@@ -29,6 +29,7 @@ mobile/    Application Flutter (client, livreur, gérant, propriétaire), icône
 - Frais de livraison fixes, **selon la distance** (devis affiché avant de commander, zone maximale) ou **par zone / quartier** (zone choisie ou reconnue d'après la position)
 - Horaires d'ouverture affichés (« Fermé — ouvre lundi à 10:00 »), commande impossible hors horaires
 - Paiement : espèces, **Flooz** (Moov Africa) ou **Mixx by Yas** par **push USSD** : le client confirme avec son code PIN sur son téléphone (jamais dans l'app)
+- **Envoyer ma position, comme sur WhatsApp** : *Partager ma position en direct* (15 min, 1 h ou 8 h : le livreur attribué voit le client bouger sur sa carte, l'itinéraire et l'heure d'arrivée vont jusqu'à lui, le bouton *Itinéraire* le guide là où il est), *Envoyer ma position actuelle* (avec sa précision) ou le point de l'épingle ; partage démarré ou arrêté depuis la commande, notification Android pendant le partage, position visible seulement du client, du livreur attribué et du personnel, effacée à la fin
 - **Suivi du livreur en direct** sur la carte (scooter qui avance, heure d'arrivée estimée), annulation tant que la commande est en attente, « Paiement non abouti » → Réessayer / Annuler
 - Profil : photo, statistiques, adresses, numéro mobile money préféré, mot de passe, thème clair / sombre / système, aide (appel, WhatsApp, FAQ), suppression du compte
 

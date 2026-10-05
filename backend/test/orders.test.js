@@ -241,6 +241,55 @@ test('serveur : commandes, argent, livreurs', async (t) => {
     assert.ok(sql.prepare(`SELECT 1 FROM audit_logs WHERE action = 'delivery_released'`).get());
   });
 
+  await t.test('position en direct du client : partage, livreur, arrêt, confidentialité', async () => {
+    await freshCustomer();
+    await admin.call('POST', '/api/admin/drivers', { name: 'Kossi', phone: '91444444', password: 'livreur1' });
+    const driver = await login('91444444', 'livreur1');
+    const o = (await delivery()).data;
+
+    // Durée invalide, retrait refusé, autre client : 404.
+    assert.equal((await cust.call('POST', `/api/orders/${o.id}/live-share`, { minutes: 7 })).status, 400);
+    const other = await register('Autre', '93999999');
+    assert.equal((await other.call('POST', `/api/orders/${o.id}/live-share`, { minutes: 15 })).status, 404);
+    const pick = (await pickup()).data;
+    assert.equal((await cust.call('POST', `/api/orders/${pick.id}/live-share`, { minutes: 15 })).status, 400);
+
+    // Démarrage avec position : visible par le client.
+    const start = await cust.call('POST', `/api/orders/${o.id}/live-share`, { minutes: 60, lat: 6.17, lng: 1.21, accuracy: 12 });
+    assert.equal(start.status, 200, JSON.stringify(start.data));
+    assert.ok(start.data.live_share_until);
+    assert.equal(start.data.customer_location.lat, 6.17);
+
+    // Livreur pas encore attribué : il ne voit rien ; attribué : il suit le client.
+    await status(o.id, 'ready');
+    const before = (await driver.call('GET', '/api/driver/orders?scope=available')).data.find((x) => x.id === o.id);
+    assert.equal(before.customer_location, null);
+    await driver.call('POST', `/api/driver/orders/${o.id}/take`);
+    await sleep(3100); // envois espacés de 3 s au plus
+    const moved = await cust.call('POST', `/api/orders/${o.id}/live-location`, { lat: 6.18, lng: 1.22, heading: 90 });
+    assert.deepEqual(moved.data.sharing, true);
+    const mine = (await driver.call('GET', '/api/driver/orders?scope=mine')).data.find((x) => x.id === o.id);
+    assert.equal(mine.customer_location.lat, 6.18);
+    assert.equal(mine.customer_location.heading, 90);
+    // Le livreur envoie sa position : l'arrivée est estimée jusqu'au client.
+    await driver.call('POST', '/api/driver/location', { lat: 6.16, lng: 1.2 });
+    const tracked = (await cust.call('GET', `/api/orders/${o.id}`)).data;
+    assert.ok(tracked.driver_location && tracked.eta_minutes >= 1);
+
+    // Position invalide : 400 ; arrêt : plus rien, et l'app est priée d'arrêter d'envoyer.
+    assert.equal((await cust.call('POST', `/api/orders/${o.id}/live-location`, { lat: 200, lng: 1 })).status, 400);
+    const stopped = await cust.call('POST', `/api/orders/${o.id}/live-share`, { minutes: 0 });
+    assert.equal(stopped.data.live_share_until, null);
+    assert.equal(stopped.data.customer_location, null);
+    assert.equal((await cust.call('POST', `/api/orders/${o.id}/live-location`, { lat: 6.18, lng: 1.22 })).data.sharing, false);
+    assert.ok(!sql.prepare('SELECT 1 FROM customer_live_locations WHERE order_id = ?').get(o.id));
+
+    // Partage expiré : plus montré.
+    await cust.call('POST', `/api/orders/${o.id}/live-share`, { minutes: 15, lat: 6.18, lng: 1.22 });
+    sql.prepare(`UPDATE orders SET live_share_until = datetime('now', '-1 minute') WHERE id = ?`).run(o.id);
+    assert.equal((await driver.call('GET', '/api/driver/orders?scope=mine')).data.find((x) => x.id === o.id).customer_location, null);
+  });
+
   await t.test('pagination : limit, before_id, X-Has-More', async () => {
     await freshCustomer();
     for (let i = 0; i < 5; i++) assert.equal((await pickup()).status, 201);

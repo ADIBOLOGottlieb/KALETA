@@ -8,6 +8,7 @@ import '../../config.dart';
 import '../../models.dart';
 import '../../services/api.dart';
 import '../../services/delivery_api.dart';
+import '../../services/live_location_sharer.dart';
 import '../../theme.dart';
 import '../../utils/format.dart';
 import '../../services/order_events.dart';
@@ -15,6 +16,7 @@ import '../../utils/polling.dart';
 import '../../widgets/animations.dart';
 import '../../widgets/common.dart';
 import '../../widgets/route_map.dart';
+import '../client/gps_picker_screen.dart' show showLiveShareDurationSheet;
 import '../client/payment_screen.dart';
 
 /// Détail et suivi d'une commande. En mode [admin], affiche les infos client
@@ -115,6 +117,43 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void _setOrder(Order o) {
     setState(() => _order = o);
     _poller.updateStatus(o.status);
+    // Client : reprend l'envoi de sa position en direct (application relancée) ou l'arrête s'il est terminé.
+    if (!widget.admin) LiveLocationSharer.instance.syncWith(o);
+  }
+
+  /// « Partager ma position en direct » depuis la commande (durée au choix, comme WhatsApp).
+  Future<void> _startLiveShare() async {
+    final minutes = await showLiveShareDurationSheet(context);
+    if (minutes == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final o = await LiveLocationSharer.instance.start(widget.orderId, minutes);
+      if (!mounted) return;
+      _gen++;
+      _setOrder(o);
+      showMessage(context, 'Position en direct partagée avec le livreur 🟢');
+    } catch (e) {
+      if (mounted) showMessage(context, e is StateError ? e.message : e, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _stopLiveShare() async {
+    setState(() => _busy = true);
+    try {
+      final o = LiveLocationSharer.instance.orderId == widget.orderId
+          ? await LiveLocationSharer.instance.stopSharing()
+          : await requestLiveShare(widget.orderId, 0);
+      if (!mounted) return;
+      _gen++;
+      if (o != null) _setOrder(o);
+      showMessage(context, 'Partage de position arrêté');
+    } catch (e) {
+      if (mounted) showMessage(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _run(Future<Order> Function() action, String success) async {
@@ -320,6 +359,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     const SizedBox(height: 16),
                     _ReceivedBanner(receivedAt: o.receivedAt!),
                   ],
+                  // Client : partager sa position en direct avec le livreur (comme WhatsApp).
+                  if (!widget.admin && o.canShareLive) ...[
+                    const SizedBox(height: 16),
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 25),
+                      child: _LiveShareCard(
+                        order: o,
+                        busy: _busy,
+                        onStart: _startLiveShare,
+                        onStop: _stopLiveShare,
+                      ),
+                    ),
+                  ],
                   if (!widget.admin && o.isDelivery && o.hasDriver && !o.isFinished) ...[
                     const SizedBox(height: 16),
                     FadeSlideIn(delay: const Duration(milliseconds: 30), child: _DriverCard(order: o)),
@@ -378,6 +430,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 from: restaurant,
                                 to: LatLng(o.deliveryLat!, o.deliveryLng!),
                                 driver: o.isTrackable ? o.driverLocation : null,
+                                customer: o.customerLocation,
                                 fromLabel: _restaurant == null
                                     ? 'Départ du livreur'
                                     : _restaurantAddress != null
@@ -1376,6 +1429,87 @@ class _RefundDialogState extends State<_RefundDialog> {
           child: const Text('Rembourser'),
         ),
       ],
+    );
+  }
+}
+
+/// Carte « Position en direct » du client : partager (durée au choix) ou arrêter, avec le temps restant.
+class _LiveShareCard extends StatelessWidget {
+  final Order order;
+  final bool busy;
+  final VoidCallback onStart;
+  final VoidCallback onStop;
+
+  const _LiveShareCard({required this.order, required this.busy, required this.onStart, required this.onStop});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final sharing = order.isLiveSharing;
+    final until = order.liveShareUntil;
+    final left = until?.difference(DateTime.now());
+    final leftText = left == null
+        ? ''
+        : left.inMinutes >= 60
+            ? '${left.inHours} h ${(left.inMinutes % 60).toString().padLeft(2, '0')}'
+            : '${left.inMinutes.clamp(1, 59)} min';
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: sharing ? AppColors.green.withValues(alpha: 0.13) : scheme.surface,
+        border: Border.all(color: sharing ? AppColors.green.withValues(alpha: 0.55) : scheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: sharing
+                ? const CustomerLivePin()
+                : Container(
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.green.withValues(alpha: 0.18)),
+                    child: const Icon(Icons.share_location_rounded, color: AppColors.green),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sharing ? 'Position en direct partagée' : 'Position en direct',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sharing
+                      ? 'Le livreur vous voit bouger · encore $leftText'
+                      : 'Vous n\'êtes pas chez vous ? Le livreur vous suivra où que vous soyez.',
+                  style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          sharing
+              ? TextButton(
+                  onPressed: busy ? null : onStop,
+                  style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                  child: const Text('Arrêter'),
+                )
+              : FilledButton(
+                  onPressed: busy ? null : onStart,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  child: const Text('Partager'),
+                ),
+        ],
+      ),
     );
   }
 }

@@ -83,16 +83,92 @@ function forgetDriverLocation(driverId) {
  * de 10 min) et minutes estimées jusqu'au client.
  * @returns {{ driver_location: object|null, eta_minutes: number|null }}
  */
-function trackingInfo(order) {
-  const none = { driver_location: null, eta_minutes: null };
+function trackingInfo(order, viewer) {
+  const live = customerLiveInfo(order, viewer);
+  const none = { driver_location: null, eta_minutes: null, ...live };
   if (!order || order.status !== 'delivering' || order.driver_delivered_at || !order.driver_id) return none;
   const loc = db.prepare('SELECT * FROM driver_locations WHERE driver_id = ?').get(order.driver_id);
   if (!loc || !(Date.now() - sqlMs(loc.updated_at) < LOCATION_MAX_AGE_MS)) return none;
-  const km = roadKm({ lat: loc.lat, lng: loc.lng }, { lat: order.delivery_lat, lng: order.delivery_lng });
+  // Le client partage sa position en direct : l'arrivée est estimée jusqu'à lui.
+  const target = live.customer_location ?? { lat: order.delivery_lat, lng: order.delivery_lng };
+  const km = roadKm({ lat: loc.lat, lng: loc.lng }, target);
   return {
+    ...live,
     driver_location: { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, heading: loc.heading, updated_at: loc.updated_at },
     eta_minutes: km === null ? null : Math.max(1, Math.ceil((km / ETA_SPEED_KMH) * 60) + 1),
   };
+}
+
+// ---------- Position en direct du client (comme « Position en direct » de WhatsApp) ----------
+
+/** Durées de partage proposées au client, en minutes (15 min, 1 h, 8 h). */
+const LIVE_SHARE_MINUTES = [15, 60, 480];
+
+/** Livraison encore en cours côté client : le partage a un sens. */
+const liveShareable = (order) =>
+  !!order && order.mode === 'delivery' && order.source !== 'counter' && !['delivered', 'cancelled'].includes(order.status);
+
+/** Partage actif : durée non écoulée et livraison en cours. */
+const liveShareActive = (order) =>
+  liveShareable(order) && !!order.live_share_until && sqlMs(order.live_share_until) > Date.now();
+
+/** Qui voit la position en direct du client : lui-même, le livreur attribué et le personnel. */
+const canSeeCustomerLive = (order, viewer) =>
+  !!viewer && (viewer.id === order.user_id || viewer.role === 'admin' || (viewer.role === 'driver' && viewer.id === order.driver_id));
+
+/**
+ * Position en direct du client pour presentOrder (seulement pour les personnes autorisées).
+ * @returns {{ customer_location: object|null, live_share_until: string|null }}
+ */
+function customerLiveInfo(order, viewer) {
+  const none = { customer_location: null, live_share_until: null };
+  if (!order || !canSeeCustomerLive(order, viewer) || !liveShareActive(order)) return none;
+  const loc = db.prepare('SELECT * FROM customer_live_locations WHERE order_id = ?').get(order.id);
+  const fresh = loc && Date.now() - sqlMs(loc.updated_at) < LOCATION_MAX_AGE_MS;
+  return {
+    live_share_until: order.live_share_until,
+    customer_location: fresh
+      ? { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, heading: loc.heading, updated_at: loc.updated_at }
+      : null,
+  };
+}
+
+/** Arrête le partage en direct d'une commande et oublie la position. */
+function stopLiveShare(orderId) {
+  db.prepare('UPDATE orders SET live_share_until = NULL WHERE id = ?').run(Number(orderId));
+  db.prepare('DELETE FROM customer_live_locations WHERE order_id = ?').run(Number(orderId));
+}
+
+/** Positions des partages terminés (durée écoulée, commande livrée ou annulée) : effacées. */
+function pruneCustomerLiveLocations() {
+  return Number(db.prepare(
+    `DELETE FROM customer_live_locations WHERE order_id NOT IN (
+       SELECT id FROM orders WHERE live_share_until > datetime('now') AND status NOT IN ('delivered', 'cancelled'))`,
+  ).run().changes);
+}
+
+/** Position envoyée par l'app : lat/lng obligatoires, précision et cap facultatifs. */
+function parsePosition(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const lat = optNumber(b.lat);
+  const lng = optNumber(b.lng);
+  const accuracy = optNumber(b.accuracy);
+  const heading = optNumber(b.heading);
+  if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    throw httpError(400, 'Position invalide');
+  }
+  if (Number.isNaN(accuracy) || (accuracy !== null && accuracy < 0)) throw httpError(400, 'Précision invalide');
+  if (Number.isNaN(heading) || (heading !== null && (heading < 0 || heading > 360))) throw httpError(400, 'Direction invalide');
+  return { lat, lng, accuracy, heading };
+}
+
+function saveCustomerLocation(order, pos) {
+  db.prepare(
+    `INSERT INTO customer_live_locations (order_id, user_id, lat, lng, accuracy, heading, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(order_id) DO UPDATE SET lat = excluded.lat, lng = excluded.lng, accuracy = excluded.accuracy,
+       heading = excluded.heading, updated_at = excluded.updated_at`,
+  ).run(order.id, order.user_id, pos.lat, pos.lng, pos.accuracy, pos.heading);
 }
 
 /** Nombre facultatif : null si absent, NaN si invalide. */
@@ -190,6 +266,7 @@ function startDeliveryTasks() {
       releaseOrphanDeliveries();
       autoConfirmDeliveries();
       pruneDriverLocations();
+      pruneCustomerLiveLocations();
     } catch (err) {
       log.error('tâche livraisons', { error: err.message });
     }
@@ -334,6 +411,40 @@ function createDeliveryRouter({ loadOrder, loadOrders, presentOrder }) {
   }));
 
   // ---------- Client ----------
+
+  // Position en direct : { minutes: 15 | 60 | 480, lat?, lng?, accuracy?, heading? } démarre (ou prolonge)
+  // le partage ; { minutes: 0 } l'arrête et efface la position.
+  router.post('/api/orders/:id/live-share', requireAuth, h((req, res) => {
+    const order = loadOrder(Number(req.params.id));
+    if (!order || order.user_id !== req.user.id) throw httpError(404, 'Commande introuvable');
+    const minutes = Number(req.body?.minutes);
+    if (minutes === 0) {
+      stopLiveShare(order.id);
+      return res.json(orderJson(order.id, req.user));
+    }
+    if (!LIVE_SHARE_MINUTES.includes(minutes)) throw httpError(400, 'Durée de partage invalide (15 min, 1 h ou 8 h)');
+    if (!liveShareable(order)) throw httpError(400, 'Le partage de position est possible seulement pendant une livraison');
+    const hasPosition = req.body?.lat !== undefined || req.body?.lng !== undefined;
+    const pos = hasPosition ? parsePosition(req.body) : null;
+    db.prepare(`UPDATE orders SET live_share_until = datetime('now', ?) WHERE id = ?`).run(`+${minutes} minutes`, order.id);
+    if (pos) saveCustomerLocation(order, pos);
+    audit('customer_live_share', { userId: req.user.id, details: { orderId: order.id, minutes }, ip: req.ip });
+    res.json(orderJson(order.id, req.user));
+  }));
+
+  // Position du client pendant le partage. sharing:false → l'app arrête d'envoyer (durée écoulée, livrée...).
+  router.post('/api/orders/:id/live-location', requireAuth, h((req, res) => {
+    const order = loadOrder(Number(req.params.id));
+    if (!order || order.user_id !== req.user.id) throw httpError(404, 'Commande introuvable');
+    const pos = parsePosition(req.body);
+    if (!liveShareActive(order)) {
+      stopLiveShare(order.id);
+      return res.json({ sharing: false, live_share_until: null });
+    }
+    const last = db.prepare('SELECT updated_at FROM customer_live_locations WHERE order_id = ?').get(order.id);
+    if (!last || Date.now() - sqlMs(last.updated_at) >= LOCATION_MIN_INTERVAL_MS) saveCustomerLocation(order, pos);
+    res.json({ sharing: true, live_share_until: order.live_share_until });
+  }));
 
   router.post('/api/orders/:id/received', requireAuth, h((req, res) => {
     const order = loadOrder(Number(req.params.id));
@@ -480,5 +591,5 @@ function createDeliveryRouter({ loadOrder, loadOrders, presentOrder }) {
 
 module.exports = {
   createDeliveryRouter, startDeliveryTasks, autoConfirmDeliveries, releaseDriverOrders, releaseOrphanDeliveries,
-  trackingInfo, forgetDriverLocation, pruneDriverLocations,
+  trackingInfo, forgetDriverLocation, pruneDriverLocations, pruneCustomerLiveLocations, stopLiveShare, LIVE_SHARE_MINUTES,
 };

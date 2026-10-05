@@ -43,6 +43,68 @@ Marker deliveryMarker(LatLng point) => Marker(
   child: const Icon(Icons.location_on_rounded, size: 40, color: AppColors.danger),
 );
 
+/// Marqueur du client qui partage sa position en direct (comme WhatsApp) : point vert pulsant.
+Marker customerLiveMarker(LatLng point, {bool stale = false}) => Marker(
+  point: point,
+  width: 64,
+  height: 64,
+  child: CustomerLivePin(stale: stale),
+);
+
+/// Point vert entouré d'ondes : « position en direct » du client.
+class CustomerLivePin extends StatefulWidget {
+  final bool stale;
+  const CustomerLivePin({super.key, this.stale = false});
+
+  @override
+  State<CustomerLivePin> createState() => _CustomerLivePinState();
+}
+
+class _CustomerLivePinState extends State<CustomerLivePin> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.stale ? const Color(0xFF8A7C77) : AppColors.green;
+    return Semantics(
+      label: 'Position en direct du client',
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, child) => Stack(
+          alignment: Alignment.center,
+          children: [
+            if (!widget.stale)
+              Container(
+                width: 22 + 42 * _c.value,
+                height: 22 + 42 * _c.value,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.4 * (1 - _c.value))),
+              ),
+            child!,
+          ],
+        ),
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 5)],
+          ),
+          child: const Icon(Icons.person_rounded, size: 14, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
 /// Marqueur du livreur (suivi en direct), centré sur sa position.
 Marker driverMarker(LatLng point, {double? heading, bool stale = false}) => Marker(
   point: point,
@@ -148,6 +210,9 @@ class RouteMap extends StatefulWidget {
   /// Position du livreur (suivi en direct) : scooter animé, carte cadrée sur le livreur et le client.
   final DriverLocation? driver;
 
+  /// Position en direct du client (partage façon WhatsApp) : marqueur pulsant, itinéraire jusqu'à lui.
+  final DriverLocation? customer;
+
   const RouteMap({
     required this.from,
     required this.to,
@@ -155,6 +220,7 @@ class RouteMap extends StatefulWidget {
     this.fromLabel,
     this.toLabel,
     this.driver,
+    this.customer,
     super.key,
   });
 
@@ -179,6 +245,13 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
   bool _userMoved = false;
 
   RouteResult? _route;
+
+  /// Client en direct : point de destination de l'itinéraire, mis à jour seulement après 60 m de
+  /// déplacement (pas un calcul d'itinéraire à chaque envoi de position).
+  LatLng? _customerAnchor;
+  static const _anchorMeters = 60.0;
+  LatLng? get _customerPoint => widget.customer == null ? null : LatLng(widget.customer!.lat, widget.customer!.lng);
+  LatLng get _to => _customerAnchor ?? widget.to;
   bool _loading = true;
   int _seq = 0;
 
@@ -194,14 +267,27 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
       _driverFrom = _driverTo = LatLng(d.lat, d.lng);
       _headingFrom = _headingTo = d.heading;
     }
+    _customerAnchor = _customerPoint;
     _initTiles();
     _loadRoute();
+  }
+
+  /// Le client en direct s'est assez déplacé (ou a commencé / arrêté le partage) : nouvel itinéraire.
+  bool _moveCustomerAnchor() {
+    final p = _customerPoint;
+    final a = _customerAnchor;
+    if (p == null && a == null) return false;
+    if (p == null || a == null || const Distance().as(LengthUnit.Meter, p, a) >= _anchorMeters) {
+      _customerAnchor = p;
+      return true;
+    }
+    return false;
   }
 
   @override
   void didUpdateWidget(RouteMap old) {
     super.didUpdateWidget(old);
-    if (old.from != widget.from || old.to != widget.to) {
+    if (old.from != widget.from || old.to != widget.to || _moveCustomerAnchor()) {
       _route = null;
       _loadRoute();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -328,7 +414,7 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
   Future<void> _loadRoute() async {
     final seq = ++_seq;
     _loading = true;
-    final r = await _geo.route(widget.from, widget.to);
+    final r = await _geo.route(widget.from, _to);
     if (!mounted || seq != _seq) return;
     setState(() {
       _route = r;
@@ -345,8 +431,8 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
   /// Suivi en direct : cadrage sur le livreur et le client ; sinon tout l'itinéraire.
   List<LatLng> get _fitPoints {
     final driver = _driverTo;
-    if (driver != null) return [driver, widget.to];
-    return [widget.from, widget.to, ...?_route?.points];
+    if (driver != null) return [driver, _to];
+    return [widget.from, _to, ...?_route?.points];
   }
 
   CameraFit get _cameraFit =>
@@ -366,7 +452,7 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
   Future<void> _openGoogleMaps() async {
     var ok = false;
     try {
-      ok = await launchUrl(googleMapsDirectionsUri(widget.from, widget.to), mode: LaunchMode.externalApplication);
+      ok = await launchUrl(googleMapsDirectionsUri(widget.from, _to), mode: LaunchMode.externalApplication);
     } catch (_) {}
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossible d\'ouvrir Google Maps')));
@@ -398,7 +484,7 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
     final scheme = Theme.of(context).colorScheme;
     final route = _route;
     final failed = !_loading && route == null;
-    final line = route != null ? routePolyline(route.points) : routePolyline([widget.from, widget.to], fallback: true);
+    final line = route != null ? routePolyline(route.points) : routePolyline([widget.from, _to], fallback: true);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -427,7 +513,11 @@ class _RouteMapState extends State<RouteMap> with SingleTickerProviderStateMixin
                   children: [
                     _tiles(),
                     if (!_loading || route != null) PolylineLayer(polylines: [line]),
-                    MarkerLayer(markers: [restaurantMarker(widget.from), deliveryMarker(widget.to)]),
+                    MarkerLayer(markers: [
+                      restaurantMarker(widget.from),
+                      // Client en direct : son marqueur pulsant remplace l'épingle fixe.
+                      if (widget.customer == null) deliveryMarker(widget.to) else customerLiveMarker(_customerPoint!, stale: widget.customer!.isStale),
+                    ]),
                     if (_driverTo != null)
                       AnimatedBuilder(
                         animation: _move,
@@ -584,6 +674,55 @@ class _LegendRow extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bandeau « Le client partage sa position en direct » (côté livreur et personnel) :
+/// fraîcheur de la dernière position et fin du partage.
+class CustomerLiveBanner extends StatelessWidget {
+  final DriverLocation location;
+  final DateTime? until;
+  const CustomerLiveBanner({super.key, required this.location, this.until});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final age = DateTime.now().difference(location.updatedAt);
+    final fresh = age.inSeconds < 60 ? 'à l\'instant' : 'il y a ${age.inMinutes} min';
+    final end = until == null
+        ? ''
+        : ' · jusqu\'à ${until!.hour.toString().padLeft(2, '0')}:${until!.minute.toString().padLeft(2, '0')}';
+    final accuracy = location.accuracy != null && location.accuracy! > 0 ? ' · ±${location.accuracy!.round()} m' : '';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.green.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(width: 40, height: 40, child: CustomerLivePin(stale: location.isStale)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  location.isStale ? 'Dernière position connue du client' : 'Le client partage sa position en direct',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Mise à jour $fresh$accuracy$end',
+                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                ),
+              ],
             ),
           ),
         ],
