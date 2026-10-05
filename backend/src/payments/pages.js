@@ -53,23 +53,23 @@ function page(res, { title, body, script = '', nonce = '' }) {
   );
   res.type('html').send(`<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)} – Eza Zozo</title>
+<title>${esc(title)} – KALETA</title>
 <style>
-  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#FAF7F4;color:#2B1B17}
-  header{background:linear-gradient(135deg,#831219,#5E0B10);color:#fff;padding:28px 20px 60px;text-align:center}
-  header img{width:84px;height:84px;border-radius:50%;object-fit:contain;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#F8F3E8;color:#1A1410}
+  header{background:linear-gradient(135deg,#17924A,#0F4F38 55%,#03150F);border-bottom:2px solid #D4B566;color:#fff;padding:28px 20px 60px;text-align:center}
+  header img{width:84px;height:84px;border-radius:50%;object-fit:contain;background:#03150F;box-shadow:0 8px 24px rgba(0,0,0,.2)}
   header h1{font-size:20px;margin:12px 0 0}
   main{max-width:460px;margin:-40px auto 24px;padding:0 16px}
-  .card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(131,18,25,.12)}
+  .card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(15,79,56,.15)}
   .row{display:flex;justify-content:space-between;padding:6px 0;color:#7A6A64} .row b{color:#2B1B17}
-  .total{border-top:1px dashed #e5d8cf;margin-top:8px;padding-top:12px;font-size:18px} .total b{color:#831219}
+  .total{border-top:1px dashed #e5d8cf;margin-top:8px;padding-top:12px;font-size:18px} .total b{color:#0F7A3A}
   button,.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px;font-size:16px;font-weight:700;margin-top:14px;cursor:pointer;text-align:center;text-decoration:none}
-  .primary{background:#831219;color:#fff} .ghost{background:#f1e9e2;color:#2B1B17} .ok{background:#2E9E5B;color:#fff}
-  .badge{display:inline-block;background:#DDA746;color:#2B1B17;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700}
+  .primary{background:linear-gradient(135deg,#3FD162,#0F6B37);color:#fff} .ghost{background:#f1e9e2;color:#2B1B17} .ok{background:#2E9E5B;color:#fff}
+  .badge{display:inline-block;background:#D4B566;color:#2B1B17;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700}
   .muted{color:#7A6A64;font-size:13px;text-align:center;margin-top:14px} .center{text-align:center}
   .big{font-size:54px;text-align:center;margin:4px 0}
 </style></head>
-<body><header><img src="/public/logo.png" alt="Eza Zozo"><h1>${esc(title)}</h1></header>
+<body><header><img src="/public/logo.png" alt="KALETA"><h1>${esc(title)}</h1></header>
 <main>${body}</main>${script ? `<script nonce="${nonce}">${script}</script>` : ''}</body></html>`);
 }
 
@@ -140,7 +140,7 @@ router.get('/pay/:id', (req, res) => {
     public_key: kadev.publicKey,
     amount: order.total,
     // L'e-mail est obligatoire chez KADEV : on génère une adresse technique si le client n'en a pas.
-    email: order.customer_email || `client${order.user_id}@clients.ezazozo.tg`,
+    email: order.customer_email || `client${order.user_id}@clients.kaleta.tg`,
     method: 'momo',
     name: order.customer_name,
     phone: order.phone,

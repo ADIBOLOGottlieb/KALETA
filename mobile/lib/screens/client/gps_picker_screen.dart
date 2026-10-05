@@ -814,7 +814,7 @@ class _GpsPickerScreenState extends State<GpsPickerScreen> with SingleTickerProv
         icon: Icon(Icons.location_disabled_rounded, color: brandColor(context)),
         title: const Text('Localisation refusée'),
         content: const Text(
-          'Eza Zozo n\'a pas l\'autorisation d\'utiliser votre position. '
+          'KALETA n\'a pas l\'autorisation d\'utiliser votre position. '
           'Ouvrez les réglages de l\'application, puis « Autorisations » > « Position » pour l\'autoriser. '
           'Vous pouvez aussi placer l\'épingle à la main.',
         ),

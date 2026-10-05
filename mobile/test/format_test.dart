@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eza_zozo/models.dart';
-import 'package:eza_zozo/providers/cart_provider.dart';
-import 'package:eza_zozo/utils/format.dart';
+import 'package:kaleta/models.dart';
+import 'package:kaleta/providers/cart_provider.dart';
+import 'package:kaleta/utils/format.dart';
 
 void main() {
   test('formatPrice groupe les milliers', () {

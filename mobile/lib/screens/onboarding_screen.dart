@@ -3,8 +3,50 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme.dart';
 import '../widgets/animations.dart';
+import '../widgets/kaleta.dart';
 
-/// Écran d'onboarding animé. Appelé la première fois.
+/// Une page de présentation : photo du restaurant, accroche et texte.
+class _Slide {
+  final String photo;
+  final IconData icon;
+  final String kicker;
+  final String title;
+  final String description;
+  const _Slide(this.photo, this.icon, this.kicker, this.title, this.description);
+}
+
+const _slides = [
+  _Slide(
+    'assets/images/venue_facade.jpg',
+    Icons.auto_awesome_rounded,
+    'TERRASSE · LOUNGE',
+    'Bienvenue chez KALETA',
+    'La nouvelle adresse gourmande de Lomé, face au lycée d\'Agoè. Ici, l\'ambiance se prépare… et maintenant elle se commande.',
+  ),
+  _Slide(
+    'assets/images/venue_salle.jpg',
+    Icons.public_rounded,
+    'CUISINE D\'AFRIQUE',
+    '8 pays, 30 spécialités',
+    'Ayimolou, fufu sauce arachide, garba, thiep, jollof, poulet DG… et nos brochettes et pizzas au feu de bois.',
+  ),
+  _Slide(
+    'assets/images/venue_terrasse.jpg',
+    Icons.local_bar_rounded,
+    'MIXOLOGIE',
+    'Cocktails signature',
+    'Kaleta Sunset, Baobab Cream, Sodabi Citron, jus pressés à la commande et thés Kaleta : la carte du bar, à portée de main.',
+  ),
+  _Slide(
+    'assets/images/venue_rooftop.jpg',
+    Icons.delivery_dining_rounded,
+    'LIVRAISON & RETRAIT',
+    'Commandez, on s\'occupe du reste',
+    'Position GPS précise, suivi du livreur en direct, paiement en espèces, Flooz ou Mixx by Yas.',
+  ),
+];
+
+/// Écran d'onboarding animé (photos du restaurant en parallaxe). Affiché une seule fois.
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onComplete;
 
@@ -14,15 +56,11 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerProviderStateMixin {
-  late PageController _pageController;
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
+  bool get _last => _currentPage == _slides.length - 1;
 
   @override
   void dispose() {
@@ -37,8 +75,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 
   void _nextPage() {
-    if (_currentPage < 3) {
-      _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+    if (!_last) {
+      _pageController.nextPage(duration: const Duration(milliseconds: 550), curve: Curves.easeInOutCubic);
     } else {
       _markCompleted();
     }
@@ -46,150 +84,180 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Stack(
-        children: [
-          PageView(
-            controller: _pageController,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            children: [
-              _OnboardingPage(
-                emoji: '🐟',
-                title: 'Bienvenue chez Eza Zozo',
-                description: 'Le poisson comme vous l\'aimez : braisé, frit ou en sauce, livré chaud à votre porte à Lomé.',
+    return Theme(
+      data: buildDarkTheme(),
+      child: Scaffold(
+        backgroundColor: AppColors.brandDark,
+        body: Stack(
+          children: [
+            PageView.builder(
+              controller: _pageController,
+              itemCount: _slides.length,
+              onPageChanged: (i) => setState(() => _currentPage = i),
+              itemBuilder: (_, i) => AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, _) {
+                  final page = _pageController.hasClients && _pageController.position.haveDimensions
+                      ? _pageController.page ?? 0
+                      : 0.0;
+                  return _SlideView(slide: _slides[i], delta: i - page, active: i == _currentPage);
+                },
               ),
-              _OnboardingPage(
-                emoji: '🔍',
-                title: 'Explorez le menu',
-                description: 'Parcourez nos plats délicieux en utilisant la barre de recherche. Filtrez par catégorie pour trouver rapidement ce que vous aimez.',
-              ),
-              _OnboardingPage(
-                emoji: '📍',
-                title: 'Indiquez votre position',
-                description: 'Lors de la livraison, utilisez Google Maps pour localiser votre adresse précisément. Le livreur vous trouvera plus facilement !',
-              ),
-              _OnboardingPage(
-                emoji: '💳',
-                title: 'Payez facilement',
-                description: 'Réglez vos commandes en espèces ou par mobile money (Flooz, Mixx by Yas). Frais de paiement appliqués seulement si nécessaire.',
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Theme.of(context).colorScheme.surface.withValues(alpha: 0.95)],
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: SafeArea(
+                child: AnimatedOpacity(
+                  opacity: _last ? 0 : 1,
+                  duration: const Duration(milliseconds: 250),
+                  child: TextButton(onPressed: _last ? null : _markCompleted, child: const Text('Passer')),
                 ),
               ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Dots indicateurs
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          for (int i = 0; i < 4; i++)
+                          for (int i = 0; i < _slides.length; i++)
                             AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              width: _currentPage == i ? 32 : 8,
+                              duration: const Duration(milliseconds: 350),
+                              curve: Curves.easeOutCubic,
+                              width: _currentPage == i ? 34 : 8,
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _currentPage == i ? AppColors.brand : AppColors.muted.withValues(alpha: 0.3),
+                                color: _currentPage == i ? AppColors.neon : Colors.white24,
                                 borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  if (_currentPage == i)
+                                    BoxShadow(color: AppColors.neon.withValues(alpha: 0.6), blurRadius: 10),
+                                ],
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      // Boutons
-                      if (_currentPage < 3)
-                        Row(
-                          children: [
-                            if (_currentPage > 0)
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => _pageController.previousPage(
-                                    duration: const Duration(milliseconds: 400),
-                                    curve: Curves.easeInOut,
-                                  ),
-                                  child: const Text('Précédent'),
-                                ),
-                              ),
-                            if (_currentPage > 0) const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: _nextPage,
-                                child: const Text('Suivant'),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        FilledButton(
-                          onPressed: _nextPage,
-                          child: const Text('Commencer à commander'),
-                        ),
+                      const SizedBox(height: 22),
+                      GlowButton(
+                        label: _last ? 'Découvrir la carte' : 'Suivant',
+                        icon: _last ? Icons.restaurant_menu_rounded : Icons.arrow_forward_rounded,
+                        gold: _last,
+                        onPressed: _nextPage,
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _OnboardingPage extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String description;
-
-  const _OnboardingPage({
-    required this.emoji,
-    required this.title,
-    required this.description,
-  });
+class _SlideView extends StatelessWidget {
+  final _Slide slide;
+  /// Écart à la page affichée (-1 … 1) : la photo glisse moins vite que le texte (parallaxe).
+  final double delta;
+  final bool active;
+  const _SlideView({required this.slide, required this.delta, required this.active});
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 60, 20, 200),
-        child: FadeSlideIn(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 96)),
-              const SizedBox(height: 32),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.2),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 15, color: AppColors.muted, height: 1.5),
-              ),
-            ],
+    final width = MediaQuery.sizeOf(context).width;
+    final fade = (1 - delta.abs()).clamp(0.0, 1.0);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRect(
+          child: Transform.translate(
+            offset: Offset(-delta * width * 0.45, 0),
+            child: Transform.scale(
+              scale: 1.15 + 0.1 * delta.abs(),
+              child: Image.asset(slide.photo, fit: BoxFit.cover),
+            ),
           ),
         ),
-      ),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x6603150F), Color(0x2203150F), Color(0xDD03150F), AppColors.brandDark],
+              stops: [0, 0.3, 0.62, 0.85],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 170),
+          child: Opacity(
+            opacity: fade,
+            child: Transform.translate(
+              offset: Offset(delta * width * 0.2, 0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Relance l'animation d'entrée à chaque arrivée sur la page.
+                  if (active)
+                    FadeSlideIn(
+                      key: ValueKey(slide.title),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.brand.withValues(alpha: 0.35),
+                          border: Border.all(color: AppColors.neon.withValues(alpha: 0.6)),
+                          boxShadow: [BoxShadow(color: AppColors.neon.withValues(alpha: 0.35), blurRadius: 20)],
+                        ),
+                        child: Icon(slide.icon, color: AppColors.neon, size: 28),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 54),
+                  const SizedBox(height: 18),
+                  Text(
+                    slide.kicker,
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    slide.title,
+                    style: const TextStyle(
+                      fontFamily: displayFont,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 34,
+                      height: 1.1,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    slide.description,
+                    style: const TextStyle(fontSize: 15, color: Color(0xFFD8D1C1), height: 1.55),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

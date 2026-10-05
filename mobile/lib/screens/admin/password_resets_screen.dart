@@ -139,8 +139,8 @@ class _ResetCard extends StatelessWidget {
     final r = request;
     final code = r.code;
     final message = code == null
-        ? 'Bonjour, ici Eza Zozo au sujet de votre demande de nouveau mot de passe.'
-        : 'Bonjour, ici Eza Zozo. Votre code pour choisir un nouveau mot de passe est : $code';
+        ? 'Bonjour, ici KALETA au sujet de votre demande de nouveau mot de passe.'
+        : 'Bonjour, ici KALETA. Votre code pour choisir un nouveau mot de passe est : $code';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),

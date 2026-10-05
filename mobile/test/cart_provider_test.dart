@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eza_zozo/models.dart';
-import 'package:eza_zozo/providers/cart_provider.dart';
-import 'package:eza_zozo/utils/format.dart' show maxQuantityPerItem;
+import 'package:kaleta/models.dart';
+import 'package:kaleta/providers/cart_provider.dart';
+import 'package:kaleta/utils/format.dart' show maxQuantityPerItem;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Product _p(int id, int price, {String? name, bool available = true}) =>

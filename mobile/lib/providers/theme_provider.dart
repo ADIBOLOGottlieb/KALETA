@@ -5,7 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ThemeProvider extends ChangeNotifier {
   static const _prefKey = 'theme_mode';
 
-  ThemeMode _themeMode = ThemeMode.system;
+  // Sombre par défaut : l'ambiance lounge de KALETA (le client peut choisir clair ou système).
+  ThemeMode _themeMode = ThemeMode.dark;
 
   ThemeMode get themeMode => _themeMode;
 
@@ -17,7 +18,7 @@ class ThemeProvider extends ChangeNotifier {
       if (saved != null) {
         _themeMode = ThemeMode.values.firstWhere(
           (mode) => mode.name == saved,
-          orElse: () => ThemeMode.system,
+          orElse: () => ThemeMode.dark,
         );
       }
     } catch (e) {

@@ -111,9 +111,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Jour à Lomé (UTC+0) : 1 = lundi … 7 = dimanche.
+  int get _today => DateTime.now().toUtc().weekday;
+
+  /// Carte proposée : les menus du jour des autres jours sont masqués.
+  List<Product> get _visible => _products.where((p) {
+        final day = dailyMenuWeekday(p.name);
+        return day == null || day == _today;
+      }).toList();
+
+  /// Menu du jour d'aujourd'hui.
+  List<Product> get _daily => _products.where((p) => dailyMenuWeekday(p.name) == _today).toList();
+
   List<Product> get _filtered {
     final q = _query.toLowerCase();
-    return _products.where((p) {
+    return _visible.where((p) {
       if (_selectedCategory != null && p.categoryId != _selectedCategory) return false;
       if (q.isNotEmpty &&
           !p.name.toLowerCase().contains(q) &&
@@ -131,9 +143,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return SafeArea(child: ErrorRetry(error: _error!, onRetry: () => _load(fresh: true)));
 
-    final popular = _products.where((p) => p.popular).toList();
+    final popular = _visible.where((p) => p.popular).toList();
+    final daily = _daily;
     final filtered = _filtered;
     final showPopular = _selectedCategory == null && _query.isEmpty && popular.isNotEmpty;
+    final showDaily = _selectedCategory == null && _query.isEmpty && daily.isNotEmpty;
     // Change quand le filtre change : relance l'animation d'apparition de la liste.
     final listKey = '$_selectedCategory|$_query';
 
@@ -196,6 +210,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          if (showDaily)
+            SliverToBoxAdapter(
+              child: FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: _DailyMenu(dayName: dayNames[_today - 1], products: daily),
+              ),
+            ),
           if (showPopular) ...[
             const SliverToBoxAdapter(child: SectionTitle('Les plus demandés 🔥')),
             SliverToBoxAdapter(
@@ -314,17 +335,16 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
           _searchTopCollapsed + (_searchHeight - _cartSize) / 2,
           t,
         );
-    final greeting = firstName.isEmpty ? 'Bonjour 👋' : 'Bonjour $firstName 👋';
+    // Lomé = UTC+0 : « Bonsoir » à partir de 17 h, l'heure du lounge.
+    final hello = DateTime.now().toUtc().hour >= 17 ? 'Bonsoir' : 'Bonjour';
+    final greeting = firstName.isEmpty ? '$hello 👋' : '$hello $firstName 👋';
 
     return SizedBox.expand(
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.brand, AppColors.brandDark],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: AppColors.brandGradient,
+          boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 3))],
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(_lerp(32, 24, t))),
         ),
         child: Stack(
@@ -500,7 +520,10 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   Widget _bubble(double size) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.07)),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [AppColors.neon.withValues(alpha: 0.16), AppColors.neon.withValues(alpha: 0)]),
+        ),
       );
 
   @override
@@ -806,6 +829,114 @@ class _AddButton extends StatelessWidget {
                   value: qty,
                   onChanged: (v) => cart.setQuantity(product.id, v),
                 ),
+    );
+  }
+}
+
+/// « Ardoise » du menu du jour : les plats du jour, bordure or, reflet animé sur le titre.
+class _DailyMenu extends StatelessWidget {
+  final String dayName;
+  final List<Product> products;
+  const _DailyMenu({required this.dayName, required this.products});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(
+            colors: dark
+                ? [AppColors.deep.withValues(alpha: 0.55), AppColors.darkSurface]
+                : [AppColors.tint, AppColors.lightSurface],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(color: AppColors.accent.withValues(alpha: dark ? 0.12 : 0.18), blurRadius: 18, offset: const Offset(0, 6)),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 16, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('📜', style: TextStyle(fontSize: 22)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Menu du jour',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 21),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.goldGradient,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    dayName,
+                    style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ),
+            const SizedBox(height: 6),
+            for (final (i, p) in products.indexed)
+              FadeSlideIn(
+                delay: FadeSlideIn.stagger(i + 2, stepMs: 90),
+                offset: const Offset(0.2, 0),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => openProduct(context, p, heroTag: 'daily-${p.id}'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Hero(
+                          tag: 'daily-${p.id}',
+                          child: ProductImage(url: p.imageUrl, width: 46, height: 46, borderRadius: BorderRadius.circular(12)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                p.name.substring(p.name.indexOf(' · ') + 3),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                              ),
+                              if (p.description != null)
+                                Text(
+                                  p.description!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Price(p.price, size: 14),
+                        const SizedBox(width: 8),
+                        _AddButton(product: p, small: true),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

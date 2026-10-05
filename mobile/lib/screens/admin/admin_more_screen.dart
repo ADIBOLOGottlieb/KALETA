@@ -149,7 +149,7 @@ class _AdminMoreScreenState extends State<AdminMoreScreen> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              'Eza Zozo • version $appVersion',
+              'KALETA • version $appVersion',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
             ),
           ),

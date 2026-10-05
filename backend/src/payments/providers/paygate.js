@@ -48,7 +48,7 @@ module.exports = {
     const data = await post('/api/v1/pay', {
       phone_number: phone,
       amount,
-      description: `Commande n°${order.id} - ${process.env.MERCHANT_DISPLAY_NAME || 'Eza Zozo'}`.slice(0, 120),
+      description: `Commande n°${order.id} - ${process.env.MERCHANT_DISPLAY_NAME || 'KALETA'}`.slice(0, 120),
       identifier: payment.identifier,
       network,
     });

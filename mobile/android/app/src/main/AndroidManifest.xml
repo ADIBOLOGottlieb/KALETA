@@ -10,7 +10,7 @@
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
-        android:label="Eza Zozo"
+        android:label="KALETA"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -34,7 +34,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Google Maps → « Partager » → Eza Zozo : reçoit le lien / la position (texte). -->
+            <!-- Google Maps → « Partager » → KALETA : reçoit le lien / la position (texte). -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>

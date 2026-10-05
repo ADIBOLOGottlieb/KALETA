@@ -347,7 +347,7 @@ function startPasswordReset(rawPhone, ip) {
   audit('password_forgot', { userId: user.id, details: { channel, resetId }, ip });
   if (channel === 'sms') {
     // Envoi en arrière-plan (même temps de réponse que pour un numéro inconnu) ; échec → repli admin.
-    sendSms(user.phone, `Eza Zozo : votre code de réinitialisation est ${code}. Valable 10 minutes.`)
+    sendSms(user.phone, `KALETA : votre code de réinitialisation est ${code}. Valable 10 minutes.`)
       .then((r) => {
         if (!r.ok) handOverToAdmin(resetId, otpId, code, user, 'échec SMS');
       })
@@ -450,7 +450,7 @@ router.post('/api/auth/otp/request', otpLimiter, h(async (req, res) => {
   if (findUserByPhone(phone)) throw httpError(409, 'Ce numéro est déjà utilisé');
   checkOtpLimits(normalized, req.ip);
   const { code } = issueOtp(normalized, 'register', { ip: req.ip });
-  const sent = await sendSms(normalized, `Eza Zozo : votre code de vérification est ${code}. Valable 10 minutes.`);
+  const sent = await sendSms(normalized, `KALETA : votre code de vérification est ${code}. Valable 10 minutes.`);
   if (otpRequired() && !sent.ok) throw httpError(503, 'Envoi du SMS impossible pour le moment. Réessayez dans quelques minutes.');
   res.json({ sent: true, channel: otpRequired() ? 'sms' : 'none' });
 }));

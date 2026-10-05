@@ -1,7 +1,7 @@
 {
-  "name": "eza-zozo-backend",
+  "name": "kaleta-backend",
   "version": "1.0.0",
-  "description": "API de commande en ligne - Eza Zozo",
+  "description": "API de commande en ligne - KALETA",
   "main": "src/start.js",
   "type": "commonjs",
   "scripts": {

@@ -70,7 +70,7 @@ jobs:
           echo "CERT_SHA1=$sha1" >> "$GITHUB_ENV"
       # Notifications push (Firebase) : secret GOOGLE_SERVICES_JSON = contenu de google-services.json
       # (brut ou encodé en base64), téléchargé depuis la console Firebase pour l'app Android
-      # com.ezazozo.app. Sans secret : APK construit sans notifications push.
+      # com.kaleta.app. Sans secret : APK construit sans notifications push.
       - name: Configuration Firebase
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -85,8 +85,8 @@ jobs:
             printf "%s" "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json 2>/dev/null || true
           fi
           # Fichier invalide ou d'une autre app : on le retire pour que le build réussisse quand même.
-          if ! jq -e ".client[] | select(.client_info.android_client_info.package_name == \"com.ezazozo.app\")" android/app/google-services.json > /dev/null 2>&1; then
-            echo "::warning::GOOGLE_SERVICES_JSON invalide ou sans l'app com.ezazozo.app : APK sans notifications push."
+          if ! jq -e ".client[] | select(.client_info.android_client_info.package_name == \"com.kaleta.app\")" android/app/google-services.json > /dev/null 2>&1; then
+            echo "::warning::GOOGLE_SERVICES_JSON invalide ou sans l'app com.kaleta.app : APK sans notifications push."
             rm -f android/app/google-services.json
             exit 0
           fi
@@ -111,11 +111,11 @@ jobs:
           --dart-define=APP_VERSION=1.0.0+${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
-          name: eza-zozo-apk
+          name: kaleta-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: eza-zozo-aab
+          name: kaleta-aab
           path: mobile/build/app/outputs/bundle/release/app-release.aab
       # Publication automatique sur Google Play (piste « Tests internes », en brouillon) si le secret
       # PLAY_SERVICE_ACCOUNT_JSON existe : compte de service Google Cloud invité dans la Play Console
@@ -133,7 +133,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.ezazozo.app
+          packageName: com.kaleta.app
           releaseFiles: mobile/build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: draft

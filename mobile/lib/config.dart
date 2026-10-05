@@ -29,7 +29,7 @@ bool get hasGoogleMapsKey => googleMapsApiKey.isNotEmpty;
 
 /// Identifiant Android de l'app (applicationId de android/app/build.gradle.kts).
 /// Envoyé dans l'en-tête `X-Android-Package` des appels Google (clé restreinte Android).
-const String androidPackageName = 'com.ezazozo.app';
+const String androidPackageName = 'com.kaleta.app';
 
 /// Empreinte SHA-1 du certificat de signature (ex. `AB:CD:...`), facultative :
 /// `--dart-define=GOOGLE_ANDROID_CERT_SHA1=...`. Envoyée dans `X-Android-Cert`,

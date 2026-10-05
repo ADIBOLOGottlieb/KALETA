@@ -50,7 +50,7 @@ class GeoService {
   static final GeoService instance = GeoService._();
 
   static const _timeout = Duration(seconds: 10);
-  static const _nominatimAgent = 'EzaZozo/1.0 (contact: restaurant)';
+  static const _nominatimAgent = 'Kaleta/1.0 (contact: restaurant)';
   static const _prefsSession = 'gmaps_tile_session';
   static const _prefsExpiry = 'gmaps_tile_session_expiry';
   static const _prefsKeyTag = 'gmaps_tile_session_key';

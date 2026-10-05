@@ -1032,7 +1032,7 @@ app.use(delivery.createDeliveryRouter({ loadOrder, loadOrders, presentOrder }));
 // Paiements mobile money : push USSD, file à vérifier, encaissements, reversements, remboursements.
 app.use(payments.createApiRouter({ presentOrder, loadOrder }));
 
-app.get('/', (_req, res) => res.json({ name: 'Eza Zozo API', status: 'ok' }));
+app.get('/', (_req, res) => res.json({ name: 'KALETA API', status: 'ok' }));
 
 // Erreurs non gérées (JSON invalide, fichier trop gros...).
 app.use((err, req, res, _next) => {
@@ -1048,5 +1048,5 @@ delivery.startDeliveryTasks();
 const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, '0.0.0.0', () => {
   log.info('démarrage', { port: PORT, payment: payments.paymentInfo(), fees: payments.feeInfo() });
-  console.log(`🐟 API Eza Zozo sur http://localhost:${PORT}`);
+  console.log(`🎭 API KALETA sur http://localhost:${PORT}`);
 });

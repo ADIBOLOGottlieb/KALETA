@@ -191,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Center(child: AppLogo(size: 70)),
             const SizedBox(height: 8),
             Center(
-              child: Text('Eza Zozo • version $appVersion', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+              child: Text('KALETA • version $appVersion', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
             ),
           ],
         ),

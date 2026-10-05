@@ -9,31 +9,35 @@ import '../services/api.dart';
 import '../theme.dart';
 import '../utils/format.dart';
 
-/// Logo du restaurant Eza Zozo (assets/images/logo_full.png, tiré de logo_source.png par tool/make_logo.ps1),
-/// dans une pastille blanche ronde : lisible en clair comme en sombre.
+/// Logo du restaurant KALETA : le masque africain (assets/images/logo_mask.png, tiré du logo officiel par
+/// tool/make_logo.ps1) sur une pastille vert nuit à liseré or. Lisible en clair comme en sombre.
 class AppLogo extends StatelessWidget {
   final double size;
-  const AppLogo({super.key, this.size = 120});
+  /// Halo vert néon autour de la pastille (écrans d'accueil, connexion).
+  final bool glow;
+  const AppLogo({super.key, this.size = 120, this.glow = false});
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Eza Zozo',
+      label: 'KALETA',
       image: true,
       child: Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: AppColors.accent, width: size * 0.025),
+          gradient: const RadialGradient(colors: [AppColors.deep, AppColors.brandDark], radius: 0.75),
+          border: Border.all(color: AppColors.accent, width: (size * 0.022).clamp(1.2, 4.0)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: size * 0.12, offset: Offset(0, size * 0.04)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: size * 0.12, offset: Offset(0, size * 0.04)),
+            if (glow)
+              BoxShadow(color: AppColors.neon.withValues(alpha: 0.35), blurRadius: size * 0.4, spreadRadius: size * 0.02),
           ],
         ),
         alignment: Alignment.center,
-        // Logo rectangulaire : 80 % de la largeur, il tient entièrement dans le cercle.
-        child: Image.asset('assets/images/logo_full.png', width: size * 0.8, fit: BoxFit.contain),
+        // Masque plus haut que large : 74 % de la hauteur, il tient dans le cercle.
+        child: Image.asset('assets/images/logo_mask.png', height: size * 0.74, fit: BoxFit.contain),
       ),
     );
   }
@@ -82,7 +86,8 @@ class ProductImage extends StatelessWidget {
       height: height,
       color: AppColors.accent.withValues(alpha: 0.18),
       alignment: Alignment.center,
-      child: const Text('🐟', style: TextStyle(fontSize: 34)),
+      // Pas de photo : le masque KALETA en filigrane.
+      child: Opacity(opacity: 0.5, child: Image.asset('assets/images/logo_mask.png', height: 44)),
     );
 
     // Shimmer loading animation for better UX

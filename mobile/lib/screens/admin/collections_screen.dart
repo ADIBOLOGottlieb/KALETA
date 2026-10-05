@@ -139,7 +139,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
         return;
       }
       final file = await writeCollectionsCsvFile(csv);
-      final label = 'Encaissements Eza Zozo $period';
+      final label = 'Encaissements KALETA $period';
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path, mimeType: 'text/csv', name: csv.fileName)],
         fileNameOverrides: [csv.fileName],

@@ -57,20 +57,20 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider(cart: cart)..init()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],
-      child: const EzaZozoApp(),
+      child: const KaletaApp(),
     ),
   );
 }
 
-class EzaZozoApp extends StatelessWidget {
-  const EzaZozoApp({super.key});
+class KaletaApp extends StatelessWidget {
+  const KaletaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (_, themeProvider, _) {
         return MaterialApp(
-          title: 'Eza Zozo',
+          title: 'KALETA',
           debugShowCheckedModeBanner: false,
           navigatorKey: navigatorKey,
           scaffoldMessengerKey: scaffoldMessengerKey,

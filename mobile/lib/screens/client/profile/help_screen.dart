@@ -63,7 +63,7 @@ const _faqs = <_Faq>[
   _Faq(
     'Mon code PIN mobile money peut-il m\'être demandé ?',
     'Non. Ne communiquez JAMAIS votre code PIN, ni par téléphone, ni par SMS, ni dans l\'application. '
-        'Eza Zozo ne vous le demandera jamais : il se saisit uniquement sur votre téléphone, '
+        'KALETA ne vous le demandera jamais : il se saisit uniquement sur votre téléphone, '
         'dans la fenêtre de votre opérateur.',
   ),
   _Faq(

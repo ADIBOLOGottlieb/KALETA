@@ -49,7 +49,7 @@ services:
       - key: MERCHANT_MIXX_NUMBER
         sync: false
       - key: MERCHANT_DISPLAY_NAME
-        value: Eza Zozo
+        value: KALETA
       # Commission de l'agrégateur, en % du montant payé (ex. 3.5) : mettez la commission exacte de votre
       # contrat PayGate/KADEV. Par défaut le RESTAURANT la paie (le client paie le prix affiché ; la commission
       # et le net réels apparaissent dans « Encaissements »). Avec le réglage admin « frais payés par le client »

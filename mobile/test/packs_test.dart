@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eza_zozo/models.dart';
+import 'package:kaleta/models.dart';
 
 /// Pack tel que renvoyé par `GET /api/products?all=1`.
 Map<String, dynamic> _pack({bool available = true, bool availableRaw = true, bool componentsAvailable = true}) => {

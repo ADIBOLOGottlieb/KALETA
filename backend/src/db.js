@@ -318,8 +318,8 @@ function getSettings() {
     delivery_fee: Number(s.delivery_fee ?? 1000),
     min_order: Number(s.min_order ?? 2000),
     is_open: (s.is_open ?? '1') === '1',
-    restaurant_phone: s.restaurant_phone ?? '+228 90 06 39 21',
-    restaurant_address: s.restaurant_address ?? 'Lomé, Togo',
+    restaurant_phone: s.restaurant_phone ?? '+228 91 00 84 84',
+    restaurant_address: s.restaurant_address ?? "Face au lycée d'Agoè, à côté de l'OTR, Lomé",
     // Taux des frais de paiement mobile money (en %), utilisé seulement sans
     // commission d'agrégateur en variable d'environnement (voir payments/fees.js).
     payment_fee_percent: Number(s.payment_fee_percent ?? 2),

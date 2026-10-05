@@ -90,7 +90,7 @@ function createGeoService(opts = {}) {
   const nominatimUrl = String(opts.nominatimUrl || process.env.NOMINATIM_URL || DEFAULT_NOMINATIM_URL).replace(/\/+$/, '');
   const osrmUrl = String(opts.osrmUrl || process.env.OSRM_URL || DEFAULT_OSRM_URL).replace(/\/+$/, '');
   const publicUrl = (process.env.PUBLIC_URL || '').trim();
-  const userAgent = opts.userAgent || `EzaZozo/1.0${publicUrl ? ` (+${publicUrl})` : ''}`;
+  const userAgent = opts.userAgent || `Kaleta/1.0${publicUrl ? ` (+${publicUrl})` : ''}`;
   const minIntervalMs = opts.minIntervalMs ?? 1000;
   const now = opts.now || Date.now;
 

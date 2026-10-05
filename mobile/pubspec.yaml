@@ -1,5 +1,5 @@
-name: eza_zozo
-description: "Eza Zozo - commande en ligne et administration du restaurant."
+name: kaleta
+description: "KALETA Terrasse & Lounge - commande en ligne et administration du restaurant."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -45,6 +45,16 @@ flutter:
     - assets/images/
     - assets/sounds/
   fonts:
+    # Titres (comme le site du restaurant). Sous-ensemble latin : accents français inclus.
+    - family: Playfair
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlayfairDisplay-BoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/PlayfairDisplay-Black.ttf
+          weight: 900
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
@@ -64,6 +74,6 @@ flutter_launcher_icons:
   ios: true
   image_path: assets/images/logo.png
   remove_alpha_ios: true
-  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_background: "#03150F"
   adaptive_icon_foreground: assets/images/logo_foreground.png
   adaptive_icon_foreground_inset: 0

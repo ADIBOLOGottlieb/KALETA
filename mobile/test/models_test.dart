@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eza_zozo/models.dart';
+import 'package:kaleta/models.dart';
 
 Map<String, dynamic> _order(Map<String, dynamic> extra) => {
       'id': 12,

@@ -271,6 +271,28 @@ const categoryIcons = <String, String>{
   'rice': '🍛',
   'fish': '🐟',
   'soup': '🍲',
+  'daily': '📅',
+  'star': '✨',
+  'african': '🌍',
+  'pasta': '🍝',
+  'juice': '🧃',
+  'cocktail': '🍹',
+  'beer': '🍺',
+  'wine': '🍾',
+  'chicha': '💨',
+  'breakfast': '🥐',
 };
+
+/// Jours de la semaine (lundi = 1), pour le « Menu du jour » : plats nommés « Lundi · … ».
+const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+/// Jour du menu du jour d'un plat (1 = lundi … 7 = dimanche), ou null si ce n'est pas un menu du jour.
+int? dailyMenuWeekday(String productName) {
+  final i = productName.indexOf(' · ');
+  if (i <= 0) return null;
+  final day = productName.substring(0, i).trim().toLowerCase();
+  final index = dayNames.indexWhere((d) => d.toLowerCase() == day);
+  return index < 0 ? null : index + 1;
+}
 
 String categoryEmoji(String? icon) => categoryIcons[icon] ?? '🍽️';

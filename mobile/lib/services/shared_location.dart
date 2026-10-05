@@ -6,13 +6,13 @@ import 'package:flutter/services.dart';
 import 'maps_link.dart';
 
 /// Positions reçues par « Partager » depuis l'app Google Maps (Android, ACTION_SEND text/plain).
-/// Le texte arrive par le canal natif `ezazozo/share` (MainActivity.kt).
+/// Le texte arrive par le canal natif `kaleta/share` (MainActivity.kt).
 class SharedLocationService {
   SharedLocationService._();
 
   static final instance = SharedLocationService._();
 
-  static const _channel = MethodChannel('ezazozo/share');
+  static const _channel = MethodChannel('kaleta/share');
 
   /// Dernière position reçue par « Partager » depuis Google Maps, pas encore utilisée.
   final ValueNotifier<ImportedLocation?> pending = ValueNotifier(null);

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eza_zozo/services/maps_link.dart';
+import 'package:kaleta/services/maps_link.dart';
 
 void main() {
   void near(num? actual, num expected, [double tol = 1e-4]) {

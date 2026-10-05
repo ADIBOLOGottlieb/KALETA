@@ -1,4 +1,4 @@
-package com.ezazozo.app
+package com.kaleta.app
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,8 +7,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Reçoit le texte partagé par l'app Google Maps (« Partager » → Eza Zozo, ACTION_SEND
- * text/plain) et le transmet à Flutter par le canal `ezazozo/share` :
+ * Reçoit le texte partagé par l'app Google Maps (« Partager » → KALETA, ACTION_SEND
+ * text/plain) et le transmet à Flutter par le canal `kaleta/share` :
  * - `getInitialSharedText` : texte reçu au lancement de l'app (renvoyé une seule fois, puis null) ;
  * - `sharedText` (appelé côté Dart) : partage reçu alors que l'app est déjà ouverte.
  */
@@ -78,6 +78,6 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
-        private const val CHANNEL = "ezazozo/share"
+        private const val CHANNEL = "kaleta/share"
     }
 }

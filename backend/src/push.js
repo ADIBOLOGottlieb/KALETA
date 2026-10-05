@@ -113,7 +113,7 @@ function buildPayload(token, message) {
   for (const [k, v] of Object.entries((message && message.data) || {})) {
     if (v !== undefined && v !== null) data[String(k)] = String(v);
   }
-  const title = String((message && message.title) || 'Eza Zozo').slice(0, 200);
+  const title = String((message && message.title) || 'KALETA').slice(0, 200);
   const body = String((message && message.body) || '').slice(0, 1000);
   return {
     message: {

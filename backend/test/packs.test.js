@@ -96,21 +96,21 @@ test('packs : catalogue, création, disponibilité, commande', async (t) => {
   const solo = products.find((p) => p.name === 'Pack Solo');
   assert.ok(solo && solo.is_pack);
   assert.deepEqual(solo.pack_items.map((i) => [i.name, i.quantity]), [['Tilapia braisé', 1], ['Attiéké', 1], ['Bissap', 1]]);
-  assert.equal(solo.pack_value, 3500 + 700 + 700);
-  assert.equal(solo.savings, 4900 - 4500);
+  assert.equal(solo.pack_value, 8000 + 1500 + 2000);
+  assert.equal(solo.savings, 11500 - 10000);
   const plain = products.find((p) => p.name === 'Alloco');
   assert.equal(plain.is_pack, false);
   assert.deepEqual(plain.pack_items, []);
 
   // Création d'un pack par le gérant.
-  const burger = products.find((p) => p.name === 'Tilapia frit');
-  const fries = products.find((p) => p.name === 'Frites maison');
+  const burger = products.find((p) => p.name === 'Hamburger');
+  const fries = products.find((p) => p.name === 'Frites');
   const created = await admin.call('POST', '/api/admin/products', {
-    name: 'Pack Midi', price: 3500, category_id: packsCat.id,
+    name: 'Pack Midi', price: 3000, category_id: packsCat.id,
     pack_items: [{ product_id: burger.id, quantity: 1 }, { product_id: fries.id, quantity: 1 }],
   });
   assert.equal(created.status, 201, JSON.stringify(created.data));
-  assert.equal(created.data.pack_value, 4000);
+  assert.equal(created.data.pack_value, 3500);
   assert.equal(created.data.savings, 500);
 
   // Refus : pack dans un pack, plat inexistant, quantité invalide, plat d'un pack transformé en pack.
@@ -128,7 +128,7 @@ test('packs : catalogue, création, disponibilité, commande', async (t) => {
     items: [{ product_id: solo.id, quantity: 2 }], phone: '93111111', mode: 'pickup', payment_method: 'cash',
   });
   assert.equal(order.status, 201, JSON.stringify(order.data));
-  assert.equal(order.data.subtotal, 9000);
+  assert.equal(order.data.subtotal, 20000);
   assert.equal(order.data.items[0].details, '1× Tilapia braisé, 1× Attiéké, 1× Bissap');
 
   // Plat épuisé : le pack disparaît du catalogue client et ne peut plus être commandé.

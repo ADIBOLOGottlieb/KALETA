@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/animations.dart';
 import '../widgets/common.dart';
+import '../widgets/kaleta.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,7 +16,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late final AnimationController _pulse =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat();
   // Le réveil du serveur peut durer jusqu'à une minute : on explique l'attente.
   late final Timer _slowTimer = Timer(const Duration(seconds: 4), () {
     if (mounted) setState(() => _slow = true);
@@ -38,50 +39,63 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            colors: [AppColors.brand, AppColors.brandDark],
-            radius: 1.1,
-          ),
-        ),
+      backgroundColor: AppColors.brandDark,
+      body: KaletaBackdrop(
+        photo: 'assets/images/venue_facade.jpg',
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 260,
-                height: 260,
+                width: 280,
+                height: 280,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Halo qui pulse derrière le logo.
-                    AnimatedBuilder(
-                      animation: _pulse,
-                      builder: (_, _) => Container(
-                        width: 170 + 90 * _pulse.value,
-                        height: 170 + 90 * _pulse.value,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.18 * (1 - _pulse.value)),
-                        ),
+                    // Deux ondes néon qui se propagent derrière le masque.
+                    for (final offset in const [0.0, 0.5])
+                      AnimatedBuilder(
+                        animation: _pulse,
+                        builder: (_, _) {
+                          final v = (_pulse.value + offset) % 1;
+                          return Container(
+                            width: 170 + 110 * v,
+                            height: 170 + 110 * v,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.neon.withValues(alpha: 0.5 * (1 - v)), width: 2),
+                            ),
+                          );
+                        },
                       ),
-                    ),
                     TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.3, end: 1),
-                      duration: const Duration(milliseconds: 1100),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 1300),
                       curve: Curves.elasticOut,
-                      builder: (_, v, child) => Transform.scale(scale: v, child: child),
-                      child: const AppLogo(size: 170),
+                      builder: (_, v, child) => Transform.rotate(
+                        angle: (1 - v) * -0.6,
+                        child: Transform.scale(scale: 0.3 + 0.7 * v, child: child),
+                      ),
+                      child: const AppLogo(size: 170, glow: true),
                     ),
                   ],
                 ),
               ),
               const FadeSlideIn(
-                delay: Duration(milliseconds: 400),
+                delay: Duration(milliseconds: 450),
+                child: KaletaWordmark(size: 50),
+              ),
+              const SizedBox(height: 18),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 800),
                 child: Text(
-                  'Le goût qui fait chanter le coq !',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  "L'ambiance se prépare…",
+                  style: TextStyle(
+                    fontFamily: displayFont,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.goldLight.withValues(alpha: 0.9),
+                    fontSize: 18,
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
@@ -95,7 +109,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.neon),
                       ),
                       SizedBox(height: 12),
                       Text(

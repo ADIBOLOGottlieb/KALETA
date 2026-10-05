@@ -301,7 +301,7 @@ class _LocationImportSheetState extends State<_LocationImportSheet> {
         const Text('Où vous livrer ?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
         Text(
-          'Choisissez votre maison dans Google Maps et partagez-la avec Eza Zozo.',
+          'Choisissez votre maison dans Google Maps et partagez-la avec KALETA.',
           style: TextStyle(color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
@@ -345,12 +345,12 @@ class _LocationImportSheetState extends State<_LocationImportSheet> {
           text: 'Appuyez longuement sur votre maison pour poser un repère',
         ),
         const _Step(number: 2, icon: Icons.share_rounded, text: 'Touchez Partager'),
-        const _Step(number: 3, icon: Icons.fastfood_rounded, text: 'Choisissez Eza Zozo'),
+        const _Step(number: 3, icon: Icons.fastfood_rounded, text: 'Choisissez KALETA'),
         if (_openedMaps)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Eza Zozo n\'apparaît pas ? Touchez « Copier le lien » dans Google Maps puis revenez ici.',
+              'KALETA n\'apparaît pas ? Touchez « Copier le lien » dans Google Maps puis revenez ici.',
               style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant),
             ),
           ),

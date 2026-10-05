@@ -7,7 +7,9 @@ import '../../providers/auth_provider.dart';
 import '../../services/api.dart';
 import '../../services/auth_api.dart';
 import '../../theme.dart';
+import '../../widgets/animations.dart';
 import '../../widgets/common.dart';
+import '../../widgets/kaleta.dart';
 import '../client/profile/help_screen.dart' show dialNumber, openExternalLink, whatsappNumber;
 
 /// « Mot de passe oublié » : numéro → code → nouveau mot de passe (connexion directe ensuite).
@@ -27,7 +29,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _loading = false;
-  bool _obscure = true;
   bool _codeStep = false;
   bool _bySms = false; // vrai : code reçu par SMS ; faux : le restaurant appelle le client
   AppSettings? _settings; // numéro du restaurant (mode sans SMS)
@@ -89,28 +90,63 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-  Widget _button(String label, VoidCallback onPressed) => FilledButton(
-        onPressed: _loading ? null : onPressed,
-        child: _loading
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-            : Text(label),
-      );
+  Widget _button(String label, VoidCallback onPressed) =>
+      GlowButton(label: label, loading: _loading, onPressed: onPressed);
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return PopScope(
-      canPop: !_codeStep,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _codeStep) setState(() => _codeStep = false);
-      },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Mot de passe oublié')),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: _codeStep ? _buildResetStep(cs) : _buildPhoneStep(cs),
-        ),
-      ),
+    // Même univers que la connexion : toujours sombre.
+    return Theme(
+      data: buildDarkTheme(),
+      child: Builder(builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return PopScope(
+          canPop: !_codeStep,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && _codeStep) setState(() => _codeStep = false);
+          },
+          child: Scaffold(
+            backgroundColor: AppColors.brandDark,
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(backgroundColor: Colors.transparent, title: const Text('Mot de passe oublié')),
+            body: KaletaBackdrop(
+              photo: 'assets/images/venue_salle.jpg',
+              rays: false,
+              child: SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: FadeSlideIn(
+                        child: GlassPanel(
+                          child: AnimatedSize(
+                            duration: const Duration(milliseconds: 380),
+                            curve: Curves.easeOutCubic,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 420),
+                              transitionBuilder: (child, anim) => FadeTransition(
+                                opacity: anim,
+                                child: ScaleTransition(
+                                  scale: Tween(begin: 0.94, end: 1.0).animate(anim),
+                                  child: child,
+                                ),
+                              ),
+                              child: _codeStep
+                                  ? KeyedSubtree(key: const ValueKey('reset'), child: _buildResetStep(cs))
+                                  : KeyedSubtree(key: const ValueKey('phone'), child: _buildPhoneStep(cs)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -120,7 +156,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.lock_reset_rounded, size: 56, color: brandColor(context)),
+          const Icon(Icons.lock_reset_rounded, size: 58, color: AppColors.neon),
           const SizedBox(height: 12),
           Text(
             'Indiquez le numéro de téléphone de votre compte. Vous recevrez un code pour choisir '
@@ -129,12 +165,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, height: 1.4),
           ),
           const SizedBox(height: 24),
-          TextFormField(
+          GlowField(
             controller: _phone,
+            label: 'Numéro de téléphone',
+            icon: Icons.phone_rounded,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _loading ? null : _requestCode(),
-            decoration: const InputDecoration(labelText: 'Numéro de téléphone', prefixIcon: Icon(Icons.phone_rounded)),
+            onSubmitted: (_) => _loading ? null : _requestCode(),
             validator: (v) => (v == null || v.trim().length < 8) ? 'Entrez un numéro valide' : null,
           ),
           const SizedBox(height: 24),
@@ -223,29 +260,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             validator: (v) => (v == null || v.trim().length != 6) ? 'Entrez le code à 6 chiffres' : null,
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          GlowField(
             controller: _password,
-            obscureText: _obscure,
+            label: 'Nouveau mot de passe',
+            icon: Icons.lock_rounded,
+            obscure: true,
+            canReveal: true,
             autofillHints: const [AutofillHints.newPassword],
             textInputAction: TextInputAction.next,
-            decoration: InputDecoration(
-              labelText: 'Nouveau mot de passe',
-              prefixIcon: const Icon(Icons.lock_rounded),
-              suffixIcon: IconButton(
-                tooltip: _obscure ? 'Afficher' : 'Masquer',
-                icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
-            ),
             validator: (v) => (v == null || v.length < 6) ? '6 caractères minimum' : null,
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          GlowField(
             controller: _confirm,
-            obscureText: _obscure,
+            label: 'Confirmer le mot de passe',
+            icon: Icons.lock_outline_rounded,
+            obscure: true,
+            canReveal: true,
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _loading ? null : _reset(),
-            decoration: const InputDecoration(labelText: 'Confirmer le mot de passe', prefixIcon: Icon(Icons.lock_rounded)),
+            onSubmitted: (_) => _loading ? null : _reset(),
             validator: (v) => v != _password.text ? 'Les mots de passe ne correspondent pas' : null,
           ),
           const SizedBox(height: 24),

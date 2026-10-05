@@ -102,7 +102,7 @@ class LegalScreen extends StatelessWidget {
 const _termsSummary = <(String, String)>[
   (
     'Le service',
-    'Eza Zozo (Lomé, Togo) permet de commander des plats à emporter ou en livraison. '
+    'KALETA (Lomé, Togo) permet de commander des plats à emporter ou en livraison. '
         'Les prix, frais de livraison et éventuels frais de paiement sont affichés avant la validation.',
   ),
   (

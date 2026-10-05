@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Apparition en fondu + glissement, avec un délai optionnel (effet « cascade »).
@@ -203,6 +205,81 @@ class _FadeIndexedStackState extends State<FadeIndexedStack> with SingleTickerPr
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Transition de page KALETA : la nouvelle page monte en fondu depuis un léger zoom arrière,
+/// la page quittée recule et s'assombrit (effet « rideau de lounge »).
+class KaletaPageTransitionsBuilder extends PageTransitionsBuilder {
+  const KaletaPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final enter = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+    final leave = CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeInOutCubic);
+    return AnimatedBuilder(
+      animation: Listenable.merge([enter, leave]),
+      child: child,
+      builder: (context, child) {
+        final t = enter.value;
+        final s = leave.value;
+        return Opacity(
+          opacity: t.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(0, 36 * (1 - t)),
+            child: Transform.scale(
+              scale: (0.94 + 0.06 * t) * (1 - 0.05 * s),
+              child: ColorFiltered(
+                // Page quittée légèrement assombrie.
+                colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.35 * s), BlendMode.srcATop),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Secoue son enfant (formulaire invalide, mot de passe erroné) : `key.currentState?.shake()`.
+class Shake extends StatefulWidget {
+  final Widget child;
+  const Shake({super.key, required this.child});
+
+  @override
+  State<Shake> createState() => ShakeState();
+}
+
+class ShakeState extends State<Shake> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
+
+  void shake() => _c.forward(from: 0);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (_, child) {
+        // Oscillation amortie : 4 allers-retours de plus en plus faibles.
+        final t = _c.value;
+        final dx = 14 * (1 - t) * math.sin(t * math.pi * 8);
+        return Transform.translate(offset: Offset(dx, 0), child: child);
+      },
     );
   }
 }

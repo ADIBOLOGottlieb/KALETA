@@ -12,7 +12,7 @@ const fees = require('./fees');
 const tasks = require('./tasks');
 const { h, maskPhone, csvCell } = require('./util');
 
-const DISPLAY_NAME = process.env.MERCHANT_DISPLAY_NAME || 'Eza Zozo';
+const DISPLAY_NAME = process.env.MERCHANT_DISPLAY_NAME || 'KALETA';
 
 function settlementText(name) {
   switch (name) {

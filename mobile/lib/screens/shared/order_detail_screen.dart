@@ -515,7 +515,7 @@ class _StatusHeader extends StatelessWidget {
       case 'confirmed':
         return 'Votre commande est confirmée et va passer en cuisine.';
       case 'preparing':
-        return 'Nos chefs préparent votre poisson avec amour 🐟';
+        return 'En cuisine : nos chefs préparent votre commande au feu de bois 🔥';
       case 'ready':
         return order.isDelivery ? 'Votre commande attend le livreur.' : 'Votre commande vous attend au restaurant !';
       case 'delivering':

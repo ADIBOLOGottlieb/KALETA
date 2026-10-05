@@ -1,10 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eza_zozo/models.dart';
-import 'package:eza_zozo/providers/token_store.dart';
-import 'package:eza_zozo/screens/client/opening_hours_banner.dart';
-import 'package:eza_zozo/screens/client/order_estimate.dart';
-import 'package:eza_zozo/services/error_reporter.dart';
+import 'package:kaleta/models.dart';
+import 'package:kaleta/providers/token_store.dart';
+import 'package:kaleta/screens/client/opening_hours_banner.dart';
+import 'package:kaleta/screens/client/order_estimate.dart';
+import 'package:kaleta/services/error_reporter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 AppSettings _settings({required bool open, DateTime? nextOpening, DateTime? nextClosing}) => AppSettings(

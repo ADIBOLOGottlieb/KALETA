@@ -142,7 +142,7 @@ function createBackup(cfg, { log = require('./logger').log, alert = null, retryB
       Authorization: `Bearer ${cfg.token}`,
       Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'eza-zozo-backup',
+      'User-Agent': 'kaleta-backup',
     };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (method !== 'GET') state.writes.push(Date.now());
@@ -408,7 +408,7 @@ function createBackup(cfg, { log = require('./logger').log, alert = null, retryB
 
   /** Dépôt complètement vide : l'API git data refuse (409), on crée un premier fichier via l'API contents. */
   async function initEmptyRepo() {
-    const readme = '# Sauvegardes Eza Zozo\n\nDépôt PRIVÉ alimenté automatiquement par le serveur. Ne pas rendre public.\n';
+    const readme = '# Sauvegardes KALETA\n\nDépôt PRIVÉ alimenté automatiquement par le serveur. Ne pas rendre public.\n';
     await gh('PUT', `contents/${prefixed('LISEZMOI.md').split('/').map(encodeURIComponent).join('/')}`, {
       body: { message: 'Initialisation des sauvegardes', content: Buffer.from(readme).toString('base64'), branch: cfg.branch },
     });

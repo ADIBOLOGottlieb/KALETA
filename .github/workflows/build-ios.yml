@@ -123,5 +123,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: env.SIGNED == '0'
         with:
-          name: eza-zozo-ios-non-signe
+          name: kaleta-ios-non-signe
           path: mobile/ios-non-signe.zip

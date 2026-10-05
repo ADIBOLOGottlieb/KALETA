@@ -1,6 +1,6 @@
-# 🍔 Eza Zozo — Application de commande en ligne
+# 🎭 KALETA — Terrasse & Lounge · Application de commande en ligne
 
-Application mobile (Android / iOS) de commande pour le restaurant **Eza Zozo** (Lomé, Togo). Une seule app, quatre rôles : **client**, **livreur**, **gérant** et **propriétaire**. Le rôle du compte connecté détermine l'interface affichée.
+Application mobile (Android / iOS) de commande pour **KALETA — Terrasse & Lounge**, « la nouvelle adresse gourmande de Lomé » (face au lycée d'Agoè, à côté de l'OTR · +228 91 00 84 84 · lundi–jeudi 11h–23h, vendredi–dimanche 16h–02h). Cuisine d'Afrique (8 pays), grillades et pizzas au feu de bois, cocktails signature, chicha, rooftop. Une seule app, quatre rôles : **client**, **livreur**, **gérant** et **propriétaire**. Le rôle du compte connecté détermine l'interface affichée.
 
 - **Client** : commande, envoie sa position et suit sa commande en direct.
 - **Gérant** : reçoit les commandes, donne leur statut, attribue les livreurs, tient la caisse et gère le restaurant.
@@ -9,7 +9,9 @@ Application mobile (Android / iOS) de commande pour le restaurant **Eza Zozo** (
 
 Pas de compte « cuisine » : un ancien compte cuisine est désactivé au démarrage du serveur (le propriétaire peut le supprimer ou le réactiver comme gérant).
 
-**Design** : couleurs du logo du restaurant, bordeaux (#831219), ocre (#DDA746), blanc et noir, avec un **mode sombre** (clair / sombre / système) pour tous les comptes. Le logo vient de `mobile/assets/images/logo_source.png` ; `mobile/tool/make_logo.ps1` en tire le logo de l'app (`logo_full.png`, affiché par `AppLogo`), les icônes (`logo.png`, `logo_foreground.png`) et le logo des pages web, puis `dart run flutter_launcher_icons`.
+**Design** : l'identité du restaurant — vert nuit (#03150F), vert profond (#0F4F38), vert néon du masque (#5BEA6B) et or des couverts (#D4B566), titres en Playfair Display. **Sombre par défaut** (ambiance lounge ; clair / système au choix dans le profil). Écrans d'accueil animés : fond aux halos néon et rayons de la coiffe du masque, photos réelles du lieu (façade, rooftop, salle, terrasse) en parallaxe, logotype « KALETA » à reflet, formulaires en verre fumé avec champs lumineux au focus, secousse en cas d'erreur, jauge du mot de passe, bouton néon qui se transforme en indicateur de chargement, transitions de page en fondu-zoom. Le logo officiel (`mobile/assets/images/logo_source.png`) passe par `mobile/tool/make_logo.ps1` : masque détouré (`logo_mask.png`, affiché par `AppLogo`), logo complet transparent (`logo_full.png`), icônes sur vert nuit (`logo.png`, `logo_foreground.png`) et logo des pages web ; puis `dart run flutter_launcher_icons`.
+
+**Carte** : la carte réelle du restaurant est chargée sur une base neuve (`backend/src/seed.js`) : menu du jour (l'app n'affiche que celui du jour, dans une « ardoise » en tête de l'accueil), signatures Kaleta, cuisine d'Afrique, brochettes, pizzas, burgers, pâtes, salades, desserts, jus et thés Kaleta, cocktails, bières, vins, chicha et packs. Les coordonnées et horaires du restaurant sont aussi enregistrés. Une base existante n'est jamais modifiée : le gérant ajuste la carte depuis l'app.
 
 ```
 backend/   API Node.js (Express + SQLite intégré à Node) — déployée sur Render
@@ -56,7 +58,7 @@ npm install
 npm start
 ```
 
-Au premier lancement, l'API crée la base `eza_zozo.db`, un menu de démonstration et le compte propriétaire `ADMIN_PHONE` / `ADMIN_PASSWORD` (sur Render : `71572566` et le mot de passe saisi dans Render ; en local sans variables : `71572566` / `admin123`). Le mot de passe n'est jamais écrit dans le dépôt.
+Au premier lancement, l'API crée la base `eza_zozo.db`, la carte KALETA et le compte propriétaire `ADMIN_PHONE` / `ADMIN_PASSWORD` (sur Render : `71572566` et le mot de passe saisi dans Render ; en local sans variables : `71572566` / `admin123`). Le mot de passe n'est jamais écrit dans le dépôt.
 
 ### Variables d'environnement
 
@@ -71,7 +73,7 @@ Au premier lancement, l'API crée la base `eza_zozo.db`, un menu de démonstrati
 | `PAYMENT_PROVIDER_FLOOZ`, `PAYMENT_PROVIDER_MIXX` | prestataire différent par opérateur (facultatif) |
 | `PAYGATE_AUTH_TOKEN` | clé API PayGate Global (**secret**) |
 | `MERCHANT_FLOOZ_NUMBER`, `MERCHANT_MIXX_NUMBER` | numéros marchands du restaurant (affichés masqués dans l'admin) |
-| `MERCHANT_DISPLAY_NAME` | nom affiché au client, « Eza Zozo » par défaut |
+| `MERCHANT_DISPLAY_NAME` | nom affiché au client, « KALETA » par défaut |
 | `PROVIDER_FEE_PERCENT_FLOOZ`, `PROVIDER_FEE_PERCENT_MIXX` (ou `PROVIDER_FEE_PERCENT` pour les deux) | commission exacte de votre contrat avec l'agrégateur, en % : sert au calcul de la commission réelle et du net (voir « Frais de paiement ») |
 | `KADEV_PUBLIC_KEY`, `KADEV_SECRET_KEY`, `KADEV_WEBHOOK_SECRET` | uniquement si `PAYMENT_PROVIDER=kadev` |
 | `PAYMENT_EXPIRY_SECONDS` | durée d'une demande de paiement (120 par défaut) |
@@ -116,7 +118,7 @@ L'APK doit toujours être signé avec **la même clé** : sinon Android refuse d
 ## 3. Position du client et cartes
 
 ### Position depuis l'app Google Maps (gratuit, sans clé)
-À la commande, le client touche **« Choisir ma position dans Google Maps »** : l'application Google Maps de son téléphone s'ouvre ; il pose un repère sur sa maison (appui long), touche **Partager** puis **Eza Zozo**. Eza Zozo reçoit le lien et en extrait la position (et le nom / l'adresse du lieu s'ils sont partagés). Autres possibilités : « Copier le lien » dans Google Maps (le lien est détecté au retour dans l'app), coller un lien, des coordonnées ou un plus code, ou « Utiliser ma position actuelle » (GPS). La position est ensuite confirmée sur un aperçu OpenStreetMap, et le livreur l'ouvre directement dans Google Maps.
+À la commande, le client touche **« Choisir ma position dans Google Maps »** : l'application Google Maps de son téléphone s'ouvre ; il pose un repère sur sa maison (appui long), touche **Partager** puis **KALETA**. KALETA reçoit le lien et en extrait la position (et le nom / l'adresse du lieu s'ils sont partagés). Autres possibilités : « Copier le lien » dans Google Maps (le lien est détecté au retour dans l'app), coller un lien, des coordonnées ou un plus code, ou « Utiliser ma position actuelle » (GPS). La position est ensuite confirmée sur un aperçu OpenStreetMap, et le livreur l'ouvre directement dans Google Maps.
 
 Aucune API Google n'est utilisée : liens Google Maps décodés dans l'app (liens courts `maps.app.goo.gl` résolus par redirection, coordonnées, plus codes), aperçu OpenStreetMap, adresse via Nominatim, itinéraire via OSRM.
 
@@ -126,7 +128,7 @@ Sans clé, l'app utilise automatiquement **OpenStreetMap**. Avec une clé, elle 
 
 1. Dans Google Cloud, créez une clé et activez **Map Tiles API**, **Places API (New)**, **Geocoding API** et **Routes API** (itinéraires).
 2. **Restreignez la clé** (*Identifiants* → la clé) :
-   - *Restrictions d'application* → **Applications Android** : nom du package `com.ezazozo.app` + empreinte **SHA-1** du certificat qui signe l'APK (`keytool -list -v -keystore <votre.jks>`).
+   - *Restrictions d'application* → **Applications Android** : nom du package `com.kaleta.app` + empreinte **SHA-1** du certificat qui signe l'APK (`keytool -list -v -keystore <votre.jks>`).
    - *Restrictions d'API* : uniquement les quatre API ci-dessus.
 3. Sur GitHub (*Settings* → *Secrets and variables* → *Actions*), ajoutez le secret `GOOGLE_MAPS_API_KEY`. L'empreinte SHA-1 est calculée par la CI à partir de la clé de signature (voir « Signature de l'APK ») : elle doit être en place **avant** de restreindre la clé Google.
 
@@ -211,7 +213,7 @@ Un livreur désactivé ne peut plus se connecter ; ses livraisons en cours reste
 - **Sessions** : changer ou réinitialiser son mot de passe déconnecte les autres appareils ; après un effacement de la base, les anciennes sessions sont refusées (un ancien client ne peut plus tomber sur le compte d'un autre).
 - **Numéros** : enregistrés au format `+228XXXXXXXX` (« 90 12 34 56 » et « +228 90123456 » sont le même compte).
 - **Notifications push** (Firebase, gratuit) : client (statut de commande, paiement, « confirmez la réception »), livreurs (commande prête, livraison attribuée), admin (nouvelle commande, paiement, mot de passe oublié). Mise en place :
-  1. console.firebase.google.com → créer un projet (offre gratuite Spark) → ajouter une app Android `com.ezazozo.app` ;
+  1. console.firebase.google.com → créer un projet (offre gratuite Spark) → ajouter une app Android `com.kaleta.app` ;
   2. télécharger `google-services.json` → secret GitHub `GOOGLE_SERVICES_JSON` (contenu brut ou base64) ;
   3. Paramètres du projet → Comptes de service → « Générer une nouvelle clé privée » → variable Render `FIREBASE_SERVICE_ACCOUNT`.
   Sans ces réglages, l'app fonctionne normalement, sans notifications.
@@ -236,7 +238,7 @@ La tâche GitHub `keep-alive` n'est pas fiable (GitHub espace les tâches planif
 - `PAYMENT_PROVIDER=paygate` (ou kadev) et **retirer `ALLOW_SIMULATION`** : en simulation, n'importe quel client peut valider lui-même son paiement.
 - Sauvegarde configurée (ci-dessus) ou disque persistant.
 - `ADMIN_PASSWORD` fort ; `JWT_SECRET` généré par Render.
-- Google Play : la CI produit aussi le fichier **AAB** (artefact `eza-zozo-aab`) exigé pour la publication ; chaque build porte un numéro de version croissant (`--build-number`) ; l'APK de production n'autorise que HTTPS (HTTP réservé aux builds de développement).
+- Google Play : la CI produit aussi le fichier **AAB** (artefact `kaleta-aab`) exigé pour la publication ; chaque build porte un numéro de version croissant (`--build-number`) ; l'APK de production n'autorise que HTTPS (HTTP réservé aux builds de développement).
 
 ## 9. Publication sur Google Play et l'App Store
 
@@ -244,19 +246,19 @@ Le même code Flutter produit les deux applications. Les builds se font sur les 
 
 ### Android — Google Play
 1. Compte **Google Play Console** au nom du restaurant (25 $, une fois). Préférez un compte « Organisation » (numéro D-U-N-S gratuit) : un compte personnel impose 14 jours de test fermé avec 12 testeurs avant la publication.
-2. Créer l'application `com.ezazozo.app`, remplir la fiche (icône, captures, description), le formulaire **Sécurité des données** (téléphone, position, photos) et le lien de confidentialité `https://eza-zozo-api-5fib.onrender.com/legal/confidentialite`.
-3. Envoyer à la main la **première** version : le fichier `app-release.aab` de l'artefact `eza-zozo-aab` (workflow *Build APK*). Activer « Play App Signing » (Google garde la clé de distribution ; la clé de la CI sert de clé d'importation).
+2. Créer l'application `com.kaleta.app`, remplir la fiche (icône, captures, description), le formulaire **Sécurité des données** (téléphone, position, photos) et le lien de confidentialité `https://eza-zozo-api-5fib.onrender.com/legal/confidentialite`.
+3. Envoyer à la main la **première** version : le fichier `app-release.aab` de l'artefact `kaleta-aab` (workflow *Build APK*). Activer « Play App Signing » (Google garde la clé de distribution ; la clé de la CI sert de clé d'importation).
 4. Ensuite, automatique : créer un compte de service Google Cloud, l'inviter dans la Play Console, et mettre sa clé JSON dans le secret GitHub `PLAY_SERVICE_ACCOUNT_JSON`. Chaque build part alors dans la piste **Tests internes** (brouillon) ; on le promeut en production depuis la console. Examen par Google : quelques heures à quelques jours.
 
 ### iPhone — App Store
 1. Compte **Apple Developer** au nom du restaurant (99 $ par an ; organisation : numéro D-U-N-S).
-2. App Store Connect → **Mes apps → +** : nouvelle app, identifiant `com.ezazozo.app` (créé d'abord dans developer.apple.com → Identifiers, avec « Push Notifications » coché si Firebase est utilisé).
+2. App Store Connect → **Mes apps → +** : nouvelle app, identifiant `com.kaleta.app` (créé d'abord dans developer.apple.com → Identifiers, avec « Push Notifications » coché si Firebase est utilisé).
 3. App Store Connect → Utilisateurs et accès → Intégrations → **Clés API** : créer une clé (rôle Admin), télécharger le fichier `.p8`.
 4. Secrets GitHub : `APPLE_TEAM_ID`, `APPSTORE_API_KEY_ID`, `APPSTORE_API_ISSUER_ID`, `APPSTORE_API_PRIVATE_KEY` (contenu du `.p8`). Facultatif : `GOOGLE_SERVICE_INFO_PLIST` (Firebase, app iOS) pour les notifications, avec la clé APNs (`.p8` « Apple Push Notifications ») déposée dans Firebase → Paramètres → Cloud Messaging.
 5. Le workflow **Build iOS** signe l'app (signature automatique gérée par Apple) et l'envoie sur **TestFlight**. Sans ces secrets, il vérifie seulement que l'app iOS compile.
 6. TestFlight : installer sur des iPhone de test (app TestFlight), puis **Soumettre pour examen** avec captures (iPhone 6,7"), description, confidentialité, et un **compte de démonstration** (client et admin) pour l'examinateur. Examen Apple : 1 à 3 jours, souvent avec des allers-retours.
 
-**Différences iPhone** : pas de « Partager → Eza Zozo » depuis Google Maps (le client place sa position sur la carte ou colle le lien) ; le suivi du livreur ne fonctionne qu'app ouverte (les livreurs utilisent Android) ; les notifications exigent Firebase + clé APNs.
+**Différences iPhone** : pas de « Partager → KALETA » depuis Google Maps (le client place sa position sur la carte ou colle le lien) ; le suivi du livreur ne fonctionne qu'app ouverte (les livreurs utilisent Android) ; les notifications exigent Firebase + clé APNs.
 
 ## API (résumé)
 
